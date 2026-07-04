@@ -3,6 +3,9 @@ package org.evocraft.evocore.data;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.StringTag;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.fml.loading.FMLPaths;
 
@@ -22,6 +25,7 @@ public class KitManager {
         public int cooldownHours;
         public ItemStack icon;
         public List<ItemStack> items = new ArrayList<>();
+        public List<String> commands = new ArrayList<>();
     }
 
     public Map<String, Kit> kits = new HashMap<>();
@@ -45,6 +49,14 @@ public class KitManager {
                     itemList.add(item.save(new CompoundTag()));
                 }
                 kTag.put("Items", itemList);
+
+                ListTag commandList = new ListTag();
+                for (String command : kit.commands) {
+                    if (command != null && !command.isBlank()) {
+                        commandList.add(StringTag.valueOf(command));
+                    }
+                }
+                kTag.put("Commands", commandList);
                 kitList.add(kTag);
             }
             root.put("Kits", kitList);
@@ -71,6 +83,11 @@ public class KitManager {
                 for (int j = 0; j < itemList.size(); j++) {
                     kit.items.add(ItemStack.of(itemList.getCompound(j)));
                 }
+                ListTag commandList = kTag.getList("Commands", 8);
+                for (int j = 0; j < commandList.size(); j++) {
+                    String command = normalizeCommand(commandList.getString(j));
+                    if (!command.isBlank()) kit.commands.add(command);
+                }
                 kits.put(kit.name.toLowerCase(), kit);
             }
             System.out.println("[EvoCore] Am incarcat " + kits.size() + " kit-uri din config.");
@@ -95,8 +112,73 @@ public class KitManager {
         save();
     }
 
+    public boolean addCommand(String kitName, String command) {
+        Kit kit = kits.get(kitName.toLowerCase());
+        if (kit == null) return false;
+
+        String normalized = normalizeCommand(command);
+        if (normalized.isBlank()) return false;
+
+        kit.commands.add(normalized);
+        save();
+        return true;
+    }
+
+    public boolean removeCommand(String kitName, int oneBasedIndex) {
+        Kit kit = kits.get(kitName.toLowerCase());
+        if (kit == null || oneBasedIndex < 1 || oneBasedIndex > kit.commands.size()) return false;
+
+        kit.commands.remove(oneBasedIndex - 1);
+        save();
+        return true;
+    }
+
+    public boolean clearCommands(String kitName) {
+        Kit kit = kits.get(kitName.toLowerCase());
+        if (kit == null) return false;
+
+        kit.commands.clear();
+        save();
+        return true;
+    }
+
+    public int executeRewardCommands(ServerPlayer player, Kit kit) {
+        if (player == null || player.getServer() == null || kit == null || kit.commands.isEmpty()) return 0;
+
+        int executed = 0;
+        CommandSourceStack source = player.getServer()
+                .createCommandSourceStack()
+                .withPermission(4)
+                .withSuppressedOutput();
+
+        for (String command : kit.commands) {
+            String preparedCommand = applyPlaceholders(command, player, kit);
+            if (preparedCommand.isBlank()) continue;
+            player.getServer().getCommands().performPrefixedCommand(source, preparedCommand);
+            executed++;
+        }
+
+        return executed;
+    }
+
     public void deleteKit(String name) {
         kits.remove(name.toLowerCase());
         save();
+    }
+
+    private String normalizeCommand(String command) {
+        if (command == null) return "";
+        String normalized = command.trim();
+        while (normalized.startsWith("/")) {
+            normalized = normalized.substring(1).trim();
+        }
+        return normalized;
+    }
+
+    private String applyPlaceholders(String command, ServerPlayer player, Kit kit) {
+        return normalizeCommand(command)
+                .replace("{player}", player.getGameProfile().getName())
+                .replace("{uuid}", player.getUUID().toString())
+                .replace("{kit}", kit.name);
     }
 }

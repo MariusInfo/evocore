@@ -84,6 +84,7 @@ public class EvoCore {
         InvseeCommand.register(event.getDispatcher());
         RTPCommand.register(event.getDispatcher());
         BroadcastCommand.register(event.getDispatcher());
+        CrateCommands.register(event.getDispatcher());
         ChatCommands.register(event.getDispatcher());
 
         StaffGmCommand.register(event.getDispatcher());
@@ -106,6 +107,7 @@ public class EvoCore {
         WarpManager.get();
         PlayerStatsManager.initialize();
         KitManager.get();
+        CrateKeyManager.get();
         HomeManager.initialize();
     }
 

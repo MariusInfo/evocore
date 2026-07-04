@@ -8,11 +8,9 @@ import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.server.level.ServerPlayer;
+import org.evocraft.evocore.data.CrateKeyManager;
 import org.evocraft.evocore.network.PacketHandler;
-import org.evocraft.evocore.database.DatabaseManager;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -58,23 +56,7 @@ public class VoteCommands {
                                 // =================================================================
                                 // 1. ADĂUGARE CHEIE ÎN BAZA DE DATE (ASINCRON PENTRU A EVITA LAG-UL)
                                 // =================================================================
-                                CompletableFuture.runAsync(() -> {
-                                    String query = "INSERT INTO player_keys (username, crate_name, amount) VALUES (?, 'vote', 1) ON DUPLICATE KEY UPDATE amount = amount + 1";
-
-                                    // FIX: Luăm conexiunea FĂRĂ să o punem în try() pentru a nu se închide automat la final!
-                                    Connection conn = DatabaseManager.get().getConnection();
-
-                                    // PreparedStatement-ul rămâne în try() pentru că el trebuie închis (curățat) din memorie
-                                    try (PreparedStatement ps = conn.prepareStatement(query)) {
-
-                                        ps.setString(1, playerName);
-                                        ps.executeUpdate();
-
-                                    } catch (Exception e) {
-                                        System.err.println("[EvoVotifier] Eroare la adaugarea cheii in baza de date pentru: " + playerName);
-                                        e.printStackTrace();
-                                    }
-                                });
+                                CompletableFuture.runAsync(() -> CrateKeyManager.get().addKeys(playerName, "vote", 1));
 
                                 // 2. Mesajul care va apărea peste tot
                                 String guiMessage = "§e" + playerName + " §fa votat și a primit §acheie vote§f!";
