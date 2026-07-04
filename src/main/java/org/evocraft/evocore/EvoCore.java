@@ -84,7 +84,6 @@ public class EvoCore {
         InvseeCommand.register(event.getDispatcher());
         RTPCommand.register(event.getDispatcher());
         BroadcastCommand.register(event.getDispatcher());
-        CrateCommands.register(event.getDispatcher());
         ChatCommands.register(event.getDispatcher());
 
         StaffGmCommand.register(event.getDispatcher());

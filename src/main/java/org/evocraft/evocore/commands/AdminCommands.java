@@ -132,66 +132,18 @@ public class AdminCommands {
                                     return 1;
                                 })))
 
-                .then(Commands.literal("command")
-                        .then(Commands.literal("add")
-                                .then(Commands.argument("name", StringArgumentType.word())
-                                        .then(Commands.argument("command", StringArgumentType.greedyString())
-                                                .executes(context -> {
-                                                    String name = StringArgumentType.getString(context, "name");
-                                                    String command = StringArgumentType.getString(context, "command");
-                                                    boolean added = KitManager.get().addCommand(name, command);
-                                                    if (!added) {
-                                                        context.getSource().sendFailure(Component.literal("§c[EvoCore] Kit not found or command is empty."));
-                                                        return 0;
-                                                    }
-                                                    context.getSource().sendSuccess(() -> Component.literal("§a[EvoCore] Added reward command to kit §e" + name + "§a."), true);
-                                                    return 1;
-                                                }))))
-                        .then(Commands.literal("remove")
-                                .then(Commands.argument("name", StringArgumentType.word())
-                                        .then(Commands.argument("index", IntegerArgumentType.integer(1))
-                                                .executes(context -> {
-                                                    String name = StringArgumentType.getString(context, "name");
-                                                    int index = IntegerArgumentType.getInteger(context, "index");
-                                                    boolean removed = KitManager.get().removeCommand(name, index);
-                                                    if (!removed) {
-                                                        context.getSource().sendFailure(Component.literal("§c[EvoCore] Kit or command index not found."));
-                                                        return 0;
-                                                    }
-                                                    context.getSource().sendSuccess(() -> Component.literal("§a[EvoCore] Removed reward command §e#" + index + " §afrom kit §e" + name + "§a."), true);
-                                                    return 1;
-                                                }))))
-                        .then(Commands.literal("clear")
-                                .then(Commands.argument("name", StringArgumentType.word())
+                .then(Commands.literal("addkey")
+                        .then(Commands.argument("key", StringArgumentType.word())
+                                .then(Commands.argument("kit", StringArgumentType.word())
                                         .executes(context -> {
-                                            String name = StringArgumentType.getString(context, "name");
-                                            boolean cleared = KitManager.get().clearCommands(name);
-                                            if (!cleared) {
-                                                context.getSource().sendFailure(Component.literal("§c[EvoCore] Kit not found."));
+                                            String key = StringArgumentType.getString(context, "key");
+                                            String kit = StringArgumentType.getString(context, "kit");
+                                            boolean added = KitManager.get().addCrateKey(key, kit);
+                                            if (!added) {
+                                                context.getSource().sendFailure(Component.literal("§c[EvoCore] Kit not found or key name is invalid."));
                                                 return 0;
                                             }
-                                            context.getSource().sendSuccess(() -> Component.literal("§a[EvoCore] Cleared reward commands for kit §e" + name + "§a."), true);
-                                            return 1;
-                                        })))
-                        .then(Commands.literal("list")
-                                .then(Commands.argument("name", StringArgumentType.word())
-                                        .executes(context -> {
-                                            String name = StringArgumentType.getString(context, "name");
-                                            KitManager.Kit kit = KitManager.get().kits.get(name.toLowerCase());
-                                            if (kit == null) {
-                                                context.getSource().sendFailure(Component.literal("§c[EvoCore] Kit not found."));
-                                                return 0;
-                                            }
-                                            context.getSource().sendSuccess(() -> Component.literal("§6[EvoCore] Reward commands for kit §e" + kit.name + "§6:"), false);
-                                            if (kit.commands.isEmpty()) {
-                                                context.getSource().sendSuccess(() -> Component.literal("§7No reward commands configured."), false);
-                                            } else {
-                                                for (int i = 0; i < kit.commands.size(); i++) {
-                                                    int index = i + 1;
-                                                    String command = kit.commands.get(i);
-                                                    context.getSource().sendSuccess(() -> Component.literal("§e" + index + ". §f/" + command), false);
-                                                }
-                                            }
+                                            context.getSource().sendSuccess(() -> Component.literal("§a[EvoCore] Kit §e" + kit + " §awill now give one §e" + key.toLowerCase() + " §acrate key."), true);
                                             return 1;
                                         })))
                 )
