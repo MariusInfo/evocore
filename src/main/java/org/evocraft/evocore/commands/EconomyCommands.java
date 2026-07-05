@@ -49,27 +49,15 @@ public class EconomyCommands {
 
         // --- COMANDA /PAY ---
         dispatcher.register(Commands.literal("pay")
+                .executes(ctx -> {
+                    ctx.getSource().sendFailure(Component.literal("§c[EvoBank] /pay is disabled. Use an EvoBank ATM transfer instead."));
+                    return 0;
+                })
                 .then(Commands.argument("target", EntityArgument.player())
                         .then(Commands.argument("amount", DoubleArgumentType.doubleArg(1))
                                 .executes(ctx -> {
-                                    ServerPlayer sender = ctx.getSource().getPlayerOrException();
-                                    ServerPlayer target = EntityArgument.getPlayer(ctx, "target");
-                                    double amount = DoubleArgumentType.getDouble(ctx, "amount");
-
-                                    if (sender.getUUID().equals(target.getUUID())) {
-                                        sender.sendSystemMessage(Component.literal("§c[!] Nu îți poți trimite bani singur!"));
-                                        return 0;
-                                    }
-
-                                    if (EconomyManager.get().getBalance(sender.getUUID()) >= amount) {
-                                        EconomyManager.get().removeBalance(sender.getUUID(), amount);
-                                        EconomyManager.get().addBalance(target.getUUID(), amount);
-                                        sender.sendSystemMessage(Component.literal("§a[Banca] §fAi trimis §e" + amount + " Lei§f lui " + target.getGameProfile().getName()));
-                                        target.sendSystemMessage(Component.literal("§a[Banca] §fAi primit §e" + amount + " Lei§f de la " + sender.getGameProfile().getName()));
-                                    } else {
-                                        sender.sendSystemMessage(Component.literal("§c[Banca] Fonduri insuficiente!"));
-                                    }
-                                    return 1;
+                                    ctx.getSource().sendFailure(Component.literal("§c[EvoBank] /pay is disabled. Use an EvoBank ATM transfer instead."));
+                                    return 0;
                                 })))
         );
     }

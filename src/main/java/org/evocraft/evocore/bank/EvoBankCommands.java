@@ -39,6 +39,17 @@ public class EvoBankCommands {
                                             context.getSource().sendSuccess(() -> Component.literal("\u00A7a[EvoBank] Issued a bank card for \u00A7e" + target.getGameProfile().getName() + "\u00A7a."), true);
                                             return 1;
                                         }))))
+                .then(Commands.literal("service")
+                        .then(Commands.literal("pin")
+                                .executes(context -> {
+                                    ServerPlayer player = context.getSource().getPlayerOrException();
+                                    return EvoBankManager.get().resetPinForFee(player) ? 1 : 0;
+                                }))
+                        .then(Commands.literal("card")
+                                .executes(context -> {
+                                    ServerPlayer player = context.getSource().getPlayerOrException();
+                                    return EvoBankManager.get().replaceCardForFee(player) ? 1 : 0;
+                                })))
                 .then(Commands.literal("npc")
                         .requires(source -> source.hasPermission(2))
                         .then(Commands.literal("spawn")

@@ -2,10 +2,13 @@ package org.evocraft.evocore;
 
 import net.minecraft.server.level.ServerPlayer;
 import java.util.UUID;
+import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.inventory.MenuType;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
+import net.minecraftforge.common.extensions.IForgeMenuType;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
@@ -14,6 +17,7 @@ import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.DeferredRegister;
@@ -22,7 +26,9 @@ import net.minecraftforge.registries.RegistryObject;
 
 import org.evocraft.evocore.commands.*;
 import org.evocraft.evocore.bank.EvoBankCommands;
+import org.evocraft.evocore.bank.EvoBankAtmMenu;
 import org.evocraft.evocore.bank.EvoBankManager;
+import org.evocraft.evocore.client.EvoBankAtmScreen;
 import org.evocraft.evocore.vote.EvoVotifier;
 import org.evocraft.evocore.data.*;
 import org.evocraft.evocore.network.PacketHandler;
@@ -41,15 +47,19 @@ public class EvoCore {
 
     // --- REGISTRUL PENTRU NPC ---
     public static final DeferredRegister<EntityType<?>> ENTITIES = DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, MODID);
+    public static final DeferredRegister<MenuType<?>> MENUS = DeferredRegister.create(ForgeRegistries.MENU_TYPES, MODID);
 
     public static final RegistryObject<EntityType<TopNPC>> TOP_NPC = ENTITIES.register("top_npc",
             () -> EntityType.Builder.of(TopNPC::new, MobCategory.MISC).sized(0.6f, 1.8f).build("top_npc"));
+    public static final RegistryObject<MenuType<EvoBankAtmMenu>> EVO_BANK_ATM_MENU = MENUS.register("evobank_atm",
+            () -> IForgeMenuType.create((containerId, inventory, data) -> new EvoBankAtmMenu(containerId, inventory)));
 
     public EvoCore() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
         // Înregistrăm entitățile în sistemul Forge
         ENTITIES.register(modEventBus);
+        MENUS.register(modEventBus);
 
         modEventBus.addListener((FMLCommonSetupEvent event) -> setup(event));
         MinecraftForge.EVENT_BUS.register(this);
@@ -66,6 +76,7 @@ public class EvoCore {
             // Asignăm viața și atributele NPC-ului
             event.put(TOP_NPC.get(), TopNPC.createAttributes().build());
         }
+
     }
 
     @Mod.EventBusSubscriber(modid = EvoCore.MODID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
@@ -74,6 +85,11 @@ public class EvoCore {
         public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
             // Asignăm cum va arăta NPC-ul (Model + Skin + Hologramă)
             event.registerEntityRenderer(EvoCore.TOP_NPC.get(), TopNPCRenderer::new);
+        }
+
+        @SubscribeEvent
+        public static void onClientSetup(FMLClientSetupEvent event) {
+            event.enqueueWork(() -> MenuScreens.register(EvoCore.EVO_BANK_ATM_MENU.get(), EvoBankAtmScreen::new));
         }
     }
 

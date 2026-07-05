@@ -1,18 +1,26 @@
 package org.evocraft.evocore.bank;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtIo;
+import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
-import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.AABB;
 import net.minecraftforge.fml.loading.FMLPaths;
 import org.evocraft.evocore.data.EconomyManager;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -28,8 +36,11 @@ public class EvoBankManager {
     private static final String CARD_ID_TAG = "EvoBankCardId";
     private static final String CASH_TAG = "EvoCash";
     private static final int CARD_MODEL_DATA = 730001;
-    private static final int DATA_VERSION = 1;
+    private static final int DATA_VERSION = 2;
+    private static final int PIN_RESET_COST = 5000;
+    private static final int CARD_REPLACEMENT_COST = 25000;
     private static final Set<Integer> WITHDRAW_AMOUNTS = Set.of(1, 5, 10, 50, 100, 1000, 10000);
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     private static EvoBankManager INSTANCE;
 
@@ -46,6 +57,8 @@ public class EvoBankManager {
         public UUID ownerUuid;
         public String ownerName;
         public String cardId;
+        public String pinSalt = "";
+        public String pinHash = "";
     }
 
     private static class AtmPosition {
@@ -81,6 +94,8 @@ public class EvoBankManager {
                 tag.putString("OwnerUuid", account.ownerUuid.toString());
                 tag.putString("OwnerName", account.ownerName == null ? "" : account.ownerName);
                 tag.putString("CardId", account.cardId == null ? "" : account.cardId);
+                tag.putString("PinSalt", account.pinSalt == null ? "" : account.pinSalt);
+                tag.putString("PinHash", account.pinHash == null ? "" : account.pinHash);
                 accountList.add(tag);
             }
             root.put("Accounts", accountList);
@@ -121,6 +136,8 @@ public class EvoBankManager {
                     account.ownerUuid = uuid;
                     account.ownerName = tag.getString("OwnerName");
                     account.cardId = tag.getString("CardId");
+                    account.pinSalt = tag.getString("PinSalt");
+                    account.pinHash = tag.getString("PinHash");
                     if (account.cardId == null || account.cardId.isBlank()) {
                         account.cardId = UUID.randomUUID().toString();
                     }
@@ -176,22 +193,85 @@ public class EvoBankManager {
 
     public void handleBankerInteraction(ServerPlayer player) {
         boolean existed = hasAccount(player.getUUID());
-        getOrCreateAccount(player);
+        BankAccount account = getOrCreateAccount(player);
 
         if (!existed) {
             giveCard(player);
-            player.sendSystemMessage(Component.literal("\u00A7a[EvoBank] Your bank account was created. You received your personal card."));
+            player.sendSystemMessage(Component.literal("\u00A7a[EvoBank] Your account was created. You received your first bank card for free."));
+            player.sendSystemMessage(Component.literal("\u00A77Go to an ATM, insert the card and set your PIN."));
             return;
         }
 
-        if (!hasValidBankCard(player)) {
-            giveCard(player);
-            player.sendSystemMessage(Component.literal("\u00A7a[EvoBank] Your replacement bank card was issued."));
-            return;
+        double balance = getAccountBalance(account);
+        player.sendSystemMessage(Component.literal("\u00A78\u00A7m--------------------------------"));
+        player.sendSystemMessage(Component.literal("\u00A7b\u00A7lEvoBank Services"));
+        player.sendSystemMessage(Component.literal("\u00A77Balance: \u00A7e" + formatAmount(balance) + " Evo Cash"));
+        player.sendSystemMessage(serviceButton("\u00A7a[Reset PIN - 5,000]", "/evobank service pin", "Pay 5,000 Evo Cash and set a new PIN at the ATM."));
+        player.sendSystemMessage(serviceButton("\u00A76[Replace Card - 25,000]", "/evobank service card", "Pay 25,000 Evo Cash and invalidate your old card."));
+        player.sendSystemMessage(Component.literal("\u00A78\u00A7m--------------------------------"));
+    }
+
+    private Component serviceButton(String label, String command, String hover) {
+        return Component.literal(label)
+                .withStyle(style -> style
+                        .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, command))
+                        .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(hover))));
+    }
+
+    public boolean resetPinForFee(ServerPlayer player) {
+        if (!isNearBanker(player)) {
+            player.sendSystemMessage(Component.literal("\u00A7c[EvoBank] You must be near the banker NPC for this service."));
+            return false;
         }
 
-        double balance = EconomyManager.get().getBalance(player.getUUID());
-        player.sendSystemMessage(Component.literal("\u00A7b[EvoBank] Account active. Balance: \u00A7e" + formatAmount(balance) + " Evo Cash\u00A7b. Use your card at an ATM."));
+        BankAccount account = accounts.get(player.getUUID());
+        if (account == null) {
+            player.sendSystemMessage(Component.literal("\u00A7c[EvoBank] You do not have a bank account yet."));
+            return false;
+        }
+
+        if (getAccountBalance(account) < PIN_RESET_COST) {
+            player.sendSystemMessage(Component.literal("\u00A7c[EvoBank] PIN reset costs \u00A7e5,000 Evo Cash\u00A7c."));
+            return false;
+        }
+
+        EconomyManager.get().removeBalance(account.ownerUuid, PIN_RESET_COST);
+        account.pinSalt = "";
+        account.pinHash = "";
+        save();
+        player.sendSystemMessage(Component.literal("\u00A7a[EvoBank] PIN reset paid. Insert your card at an ATM and set a new PIN."));
+        return true;
+    }
+
+    public boolean replaceCardForFee(ServerPlayer player) {
+        if (!isNearBanker(player)) {
+            player.sendSystemMessage(Component.literal("\u00A7c[EvoBank] You must be near the banker NPC for this service."));
+            return false;
+        }
+
+        BankAccount account = accounts.get(player.getUUID());
+        if (account == null) {
+            player.sendSystemMessage(Component.literal("\u00A7c[EvoBank] You do not have a bank account yet."));
+            return false;
+        }
+
+        if (getAccountBalance(account) < CARD_REPLACEMENT_COST) {
+            player.sendSystemMessage(Component.literal("\u00A7c[EvoBank] Card replacement costs \u00A7e25,000 Evo Cash\u00A7c."));
+            return false;
+        }
+
+        EconomyManager.get().removeBalance(account.ownerUuid, CARD_REPLACEMENT_COST);
+        account.cardId = UUID.randomUUID().toString();
+        save();
+        giveCard(player);
+        player.sendSystemMessage(Component.literal("\u00A7a[EvoBank] New card issued. The old card is no longer valid."));
+        return true;
+    }
+
+    public boolean isNearBanker(ServerPlayer player) {
+        AABB area = new AABB(player.blockPosition()).inflate(5.0D);
+        return !player.level().getEntitiesOfClass(Villager.class, area,
+                villager -> villager.getTags().contains(BANKER_TAG)).isEmpty();
     }
 
     public ItemStack createBankCard(ServerPlayer player) {
@@ -214,7 +294,7 @@ public class EvoBankManager {
 
     public boolean hasValidBankCard(ServerPlayer player) {
         for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
-            if (isValidBankCard(player, player.getInventory().getItem(i))) {
+            if (getAccountByCard(player.getInventory().getItem(i)) != null) {
                 return true;
             }
         }
@@ -222,15 +302,57 @@ public class EvoBankManager {
     }
 
     public boolean isValidBankCard(ServerPlayer player, ItemStack stack) {
+        return getAccountByCard(stack) != null;
+    }
+
+    public static boolean isBankCardItem(ItemStack stack) {
         if (stack == null || stack.isEmpty() || !stack.hasTag()) return false;
         CompoundTag tag = stack.getTag();
-        if (tag == null || !tag.getBoolean(CARD_TAG)) return false;
+        return tag != null && tag.getBoolean(CARD_TAG) && !tag.getString(CARD_ID_TAG).isBlank();
+    }
 
-        BankAccount account = accounts.get(player.getUUID());
-        if (account == null) return false;
+    public synchronized BankAccount getAccountByCard(ItemStack stack) {
+        if (!isBankCardItem(stack)) return null;
+        CompoundTag tag = stack.getTag();
+        if (tag == null) return null;
 
-        return player.getUUID().toString().equals(tag.getString(CARD_OWNER_TAG))
-                && account.cardId.equals(tag.getString(CARD_ID_TAG));
+        String cardId = tag.getString(CARD_ID_TAG);
+        String owner = tag.getString(CARD_OWNER_TAG);
+        for (BankAccount account : accounts.values()) {
+            if (account.cardId != null && account.cardId.equals(cardId)) {
+                if (owner.isBlank() || account.ownerUuid.toString().equals(owner)) {
+                    return account;
+                }
+            }
+        }
+        return null;
+    }
+
+    public String getCardId(ItemStack stack) {
+        if (!isBankCardItem(stack) || stack.getTag() == null) return "";
+        return stack.getTag().getString(CARD_ID_TAG);
+    }
+
+    public boolean hasPin(BankAccount account) {
+        return account != null && account.pinSalt != null && !account.pinSalt.isBlank()
+                && account.pinHash != null && !account.pinHash.isBlank();
+    }
+
+    public boolean setPin(BankAccount account, String pin) {
+        if (account == null || !isValidPin(pin)) return false;
+        account.pinSalt = createSalt();
+        account.pinHash = hashPin(account.pinSalt, pin);
+        save();
+        return true;
+    }
+
+    public boolean verifyPin(BankAccount account, String pin) {
+        if (account == null || !hasPin(account) || !isValidPin(pin)) return false;
+        return account.pinHash.equals(hashPin(account.pinSalt, pin));
+    }
+
+    public boolean isValidPin(String pin) {
+        return pin != null && pin.matches("\\d{4,6}");
     }
 
     public ItemStack createCashItem(int amount) {
@@ -244,49 +366,62 @@ public class EvoBankManager {
         return moneyItem;
     }
 
-    public static void applyCashModel(ItemStack stack, int amount) {
-        int modelData = getCashModelData(amount);
-        if (modelData > 0) {
-            stack.getOrCreateTag().putInt("CustomModelData", modelData);
-        }
+    public static boolean isCashItem(ItemStack stack) {
+        if (stack == null || stack.isEmpty() || !stack.hasTag()) return false;
+        CompoundTag tag = stack.getTag();
+        return tag != null && tag.contains("EvoMoney") && tag.getInt("EvoMoney") > 0;
     }
 
-    public static int getCashModelData(int amount) {
-        return switch (amount) {
-            case 1 -> 730101;
-            case 5 -> 730105;
-            case 10 -> 730110;
-            case 50 -> 730150;
-            case 100 -> 730200;
-            case 500 -> 730600;
-            case 1000 -> 731100;
-            case 5000 -> 735100;
-            case 10000 -> 740100;
-            default -> 0;
-        };
+    public static double getCashValue(ItemStack stack) {
+        if (!isCashItem(stack) || stack.getTag() == null) return 0.0D;
+        int amount = stack.getTag().getInt("EvoMoney");
+        if (amount <= 0) return 0.0D;
+        return amount * (double) stack.getCount();
+    }
+
+    public boolean withdrawFromAccount(ServerPlayer actor, BankAccount account, int amount) {
+        if (actor == null || account == null || !WITHDRAW_AMOUNTS.contains(amount)) return false;
+        if (getAccountBalance(account) + 0.0001D < amount) return false;
+
+        EconomyManager.get().removeBalance(account.ownerUuid, amount);
+        giveOrDrop(actor, createCashItem(amount));
+        return true;
+    }
+
+    public boolean depositToAccount(BankAccount account, double amount) {
+        if (account == null || !Double.isFinite(amount) || amount <= 0.0D) return false;
+        EconomyManager.get().addBalance(account.ownerUuid, amount);
+        return true;
+    }
+
+    public boolean transfer(BankAccount from, BankAccount to, double amount) {
+        if (from == null || to == null || from.ownerUuid.equals(to.ownerUuid)) return false;
+        if (!Double.isFinite(amount) || amount <= 0.0D) return false;
+        if (getAccountBalance(from) + 0.0001D < amount) return false;
+
+        EconomyManager.get().removeBalance(from.ownerUuid, amount);
+        EconomyManager.get().addBalance(to.ownerUuid, amount);
+        return true;
+    }
+
+    public synchronized BankAccount findAccountByName(String name) {
+        if (name == null || name.isBlank()) return null;
+        String normalized = name.trim().toLowerCase(Locale.ROOT);
+        for (BankAccount account : accounts.values()) {
+            if (account.ownerName != null && account.ownerName.toLowerCase(Locale.ROOT).equals(normalized)) {
+                return account;
+            }
+        }
+        return null;
+    }
+
+    public double getAccountBalance(BankAccount account) {
+        return account == null ? 0.0D : EconomyManager.get().getBalance(account.ownerUuid);
     }
 
     public boolean withdraw(ServerPlayer player, int amount) {
-        if (!WITHDRAW_AMOUNTS.contains(amount)) {
-            player.sendSystemMessage(Component.literal("\u00A7c[EvoBank] This ATM cannot withdraw that amount."));
-            return false;
-        }
-
-        if (!hasValidBankCard(player)) {
-            player.sendSystemMessage(Component.literal("\u00A7c[EvoBank] You need your personal EvoBank card to use this ATM."));
-            return false;
-        }
-
-        double balance = EconomyManager.get().getBalance(player.getUUID());
-        if (balance + 0.0001D < amount) {
-            player.sendSystemMessage(Component.literal("\u00A7c[EvoBank] Not enough funds. Balance: \u00A7e" + formatAmount(balance) + " Evo Cash"));
-            return false;
-        }
-
-        EconomyManager.get().removeBalance(player.getUUID(), amount);
-        giveOrDrop(player, createCashItem(amount));
-        player.sendSystemMessage(Component.literal("\u00A7a[EvoBank] Withdrawn \u00A7e" + formatAmount(amount) + " Evo Cash\u00A7a."));
-        return true;
+        player.sendSystemMessage(Component.literal("\u00A7c[EvoBank] Use an ATM, insert the card and enter the PIN."));
+        return false;
     }
 
     public boolean addAtm(Level level, BlockPos pos) {
@@ -322,6 +457,28 @@ public class EvoBankManager {
         return WITHDRAW_AMOUNTS.contains(amount);
     }
 
+    public static void applyCashModel(ItemStack stack, int amount) {
+        int modelData = getCashModelData(amount);
+        if (modelData > 0) {
+            stack.getOrCreateTag().putInt("CustomModelData", modelData);
+        }
+    }
+
+    public static int getCashModelData(int amount) {
+        return switch (amount) {
+            case 1 -> 730101;
+            case 5 -> 730105;
+            case 10 -> 730110;
+            case 50 -> 730150;
+            case 100 -> 730200;
+            case 500 -> 730600;
+            case 1000 -> 731100;
+            case 5000 -> 735100;
+            case 10000 -> 740100;
+            default -> 0;
+        };
+    }
+
     public static String formatAmount(double amount) {
         return String.format(Locale.US, "%,.0f", amount);
     }
@@ -329,6 +486,22 @@ public class EvoBankManager {
     private void giveOrDrop(ServerPlayer player, ItemStack stack) {
         if (!player.getInventory().add(stack)) {
             player.drop(stack, false);
+        }
+    }
+
+    private static String createSalt() {
+        byte[] bytes = new byte[16];
+        RANDOM.nextBytes(bytes);
+        return Base64.getEncoder().encodeToString(bytes);
+    }
+
+    private static String hashPin(String salt, String pin) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashed = digest.digest((salt + ":" + pin).getBytes(StandardCharsets.UTF_8));
+            return Base64.getEncoder().encodeToString(hashed);
+        } catch (Exception e) {
+            throw new IllegalStateException("Could not hash EvoBank PIN", e);
         }
     }
 

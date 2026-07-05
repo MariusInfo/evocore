@@ -1,6 +1,7 @@
 package org.evocraft.evocore.network;
 
 import org.evocraft.evocore.EvoCore;
+import org.evocraft.evocore.bank.EvoBankAtmMenu;
 import org.evocraft.evocore.data.PlayerStatsManager;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
@@ -47,6 +48,11 @@ public class PacketHandler {
         INSTANCE.registerMessage(nextId(), C2S_HomeActionPacket.class, C2S_HomeActionPacket::toBytes, C2S_HomeActionPacket::new, C2S_HomeActionPacket::handle);
         INSTANCE.registerMessage(nextId(), S2C_SyncHomesPacket.class, S2C_SyncHomesPacket::toBytes, S2C_SyncHomesPacket::new, S2C_SyncHomesPacket::handle);
         INSTANCE.registerMessage(nextId(), C2S_TpaActionPacket.class, C2S_TpaActionPacket::toBytes, C2S_TpaActionPacket::new, C2S_TpaActionPacket::handle);
+        INSTANCE.registerMessage(nextId(), S2C_EvoBankAtmState.class, S2C_EvoBankAtmState::toBytes, S2C_EvoBankAtmState::new, S2C_EvoBankAtmState::handle);
+        INSTANCE.registerMessage(nextId(), C2S_EvoBankAtmPin.class, C2S_EvoBankAtmPin::toBytes, C2S_EvoBankAtmPin::new, C2S_EvoBankAtmPin::handle);
+        INSTANCE.registerMessage(nextId(), C2S_EvoBankAtmWithdraw.class, C2S_EvoBankAtmWithdraw::toBytes, C2S_EvoBankAtmWithdraw::new, C2S_EvoBankAtmWithdraw::handle);
+        INSTANCE.registerMessage(nextId(), C2S_EvoBankAtmDeposit.class, C2S_EvoBankAtmDeposit::toBytes, C2S_EvoBankAtmDeposit::new, C2S_EvoBankAtmDeposit::handle);
+        INSTANCE.registerMessage(nextId(), C2S_EvoBankAtmTransfer.class, C2S_EvoBankAtmTransfer::toBytes, C2S_EvoBankAtmTransfer::new, C2S_EvoBankAtmTransfer::handle);
 
         // --- AM INREGISTRAT PACHETUL PENTRU FLY AICI ---
         INSTANCE.registerMessage(nextId(), S2C_SyncFlyTime.class, S2C_SyncFlyTime::toBytes, S2C_SyncFlyTime::new, S2C_SyncFlyTime::handle);
@@ -182,6 +188,162 @@ public class PacketHandler {
             });
             ctx.get().setPacketHandled(true);
             return true;
+        }
+    }
+
+    public static class S2C_EvoBankAtmState {
+        public final boolean hasCard;
+        public final boolean cardValid;
+        public final boolean hasPin;
+        public final boolean authenticated;
+        public final String ownerName;
+        public final double balance;
+        public final String message;
+        public final boolean positive;
+
+        public S2C_EvoBankAtmState(boolean hasCard, boolean cardValid, boolean hasPin, boolean authenticated,
+                                   String ownerName, double balance, String message, boolean positive) {
+            this.hasCard = hasCard;
+            this.cardValid = cardValid;
+            this.hasPin = hasPin;
+            this.authenticated = authenticated;
+            this.ownerName = ownerName;
+            this.balance = balance;
+            this.message = message;
+            this.positive = positive;
+        }
+
+        public S2C_EvoBankAtmState(FriendlyByteBuf buf) {
+            this.hasCard = buf.readBoolean();
+            this.cardValid = buf.readBoolean();
+            this.hasPin = buf.readBoolean();
+            this.authenticated = buf.readBoolean();
+            this.ownerName = buf.readUtf();
+            this.balance = buf.readDouble();
+            this.message = buf.readUtf();
+            this.positive = buf.readBoolean();
+        }
+
+        public void toBytes(FriendlyByteBuf buf) {
+            buf.writeBoolean(hasCard);
+            buf.writeBoolean(cardValid);
+            buf.writeBoolean(hasPin);
+            buf.writeBoolean(authenticated);
+            buf.writeUtf(ownerName == null ? "" : ownerName);
+            buf.writeDouble(balance);
+            buf.writeUtf(message == null ? "" : message);
+            buf.writeBoolean(positive);
+        }
+
+        public void handle(Supplier<NetworkEvent.Context> ctx) {
+            ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () ->
+                    org.evocraft.evocore.network.ClientPacketHandler.handleEvoBankAtmState(
+                            hasCard, cardValid, hasPin, authenticated, ownerName, balance, message, positive
+                    )));
+            ctx.get().setPacketHandled(true);
+        }
+    }
+
+    public static class C2S_EvoBankAtmPin {
+        public final String pin;
+
+        public C2S_EvoBankAtmPin(String pin) {
+            this.pin = pin == null ? "" : pin;
+        }
+
+        public C2S_EvoBankAtmPin(FriendlyByteBuf buf) {
+            this.pin = buf.readUtf(12);
+        }
+
+        public void toBytes(FriendlyByteBuf buf) {
+            buf.writeUtf(pin, 12);
+        }
+
+        public void handle(Supplier<NetworkEvent.Context> ctx) {
+            ctx.get().enqueueWork(() -> {
+                ServerPlayer player = ctx.get().getSender();
+                if (player != null && player.containerMenu instanceof EvoBankAtmMenu menu) {
+                    menu.handlePin(player, pin);
+                }
+            });
+            ctx.get().setPacketHandled(true);
+        }
+    }
+
+    public static class C2S_EvoBankAtmWithdraw {
+        public final int amount;
+
+        public C2S_EvoBankAtmWithdraw(int amount) {
+            this.amount = amount;
+        }
+
+        public C2S_EvoBankAtmWithdraw(FriendlyByteBuf buf) {
+            this.amount = buf.readInt();
+        }
+
+        public void toBytes(FriendlyByteBuf buf) {
+            buf.writeInt(amount);
+        }
+
+        public void handle(Supplier<NetworkEvent.Context> ctx) {
+            ctx.get().enqueueWork(() -> {
+                ServerPlayer player = ctx.get().getSender();
+                if (player != null && player.containerMenu instanceof EvoBankAtmMenu menu) {
+                    menu.handleWithdraw(player, amount);
+                }
+            });
+            ctx.get().setPacketHandled(true);
+        }
+    }
+
+    public static class C2S_EvoBankAtmDeposit {
+        public C2S_EvoBankAtmDeposit() {
+        }
+
+        public C2S_EvoBankAtmDeposit(FriendlyByteBuf buf) {
+        }
+
+        public void toBytes(FriendlyByteBuf buf) {
+        }
+
+        public void handle(Supplier<NetworkEvent.Context> ctx) {
+            ctx.get().enqueueWork(() -> {
+                ServerPlayer player = ctx.get().getSender();
+                if (player != null && player.containerMenu instanceof EvoBankAtmMenu menu) {
+                    menu.handleDeposit(player);
+                }
+            });
+            ctx.get().setPacketHandled(true);
+        }
+    }
+
+    public static class C2S_EvoBankAtmTransfer {
+        public final String targetName;
+        public final double amount;
+
+        public C2S_EvoBankAtmTransfer(String targetName, double amount) {
+            this.targetName = targetName == null ? "" : targetName;
+            this.amount = amount;
+        }
+
+        public C2S_EvoBankAtmTransfer(FriendlyByteBuf buf) {
+            this.targetName = buf.readUtf(32);
+            this.amount = buf.readDouble();
+        }
+
+        public void toBytes(FriendlyByteBuf buf) {
+            buf.writeUtf(targetName, 32);
+            buf.writeDouble(amount);
+        }
+
+        public void handle(Supplier<NetworkEvent.Context> ctx) {
+            ctx.get().enqueueWork(() -> {
+                ServerPlayer player = ctx.get().getSender();
+                if (player != null && player.containerMenu instanceof EvoBankAtmMenu menu) {
+                    menu.handleTransfer(player, targetName, amount);
+                }
+            });
+            ctx.get().setPacketHandled(true);
         }
     }
 

@@ -38,11 +38,6 @@ public class EvoBankEvents {
         event.setCanceled(true);
         event.setCancellationResult(InteractionResult.SUCCESS);
 
-        if (!EvoBankManager.get().hasValidBankCard(player)) {
-            player.sendSystemMessage(Component.literal("\u00A7c[EvoBank] You need your personal EvoBank card. Talk to the banker first."));
-            return;
-        }
-
         player.openMenu(new SimpleMenuProvider(
                 (containerId, inventory, p) -> new EvoBankAtmMenu(containerId, inventory),
                 Component.literal("\u00A76\u00A7lEvoBank ATM")
