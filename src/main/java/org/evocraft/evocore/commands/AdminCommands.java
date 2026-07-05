@@ -10,7 +10,7 @@ import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
+import org.evocraft.evocore.bank.EvoBankManager;
 import org.evocraft.evocore.data.EconomyManager;
 import org.evocraft.evocore.data.KitManager;
 
@@ -77,9 +77,7 @@ public class AdminCommands {
                                     ServerPlayer player = context.getSource().getPlayerOrException();
                                     int amount = IntegerArgumentType.getInteger(context, "amount");
 
-                                    ItemStack moneyItem = new ItemStack(Items.PAPER);
-                                    moneyItem.setHoverName(Component.literal("§e§lBANI: §a" + amount + " Lei"));
-                                    moneyItem.getOrCreateTag().putInt("EvoMoney", amount);
+                                    ItemStack moneyItem = EvoBankManager.get().createCashItem(amount);
 
                                     player.getInventory().add(moneyItem);
                                     player.sendSystemMessage(Component.literal("§a✔ Ai primit item-ul de §e" + amount + " Lei§a. Pune-l în inventar și dă /evokit create!"));

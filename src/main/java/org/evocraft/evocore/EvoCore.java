@@ -21,6 +21,8 @@ import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 
 import org.evocraft.evocore.commands.*;
+import org.evocraft.evocore.bank.EvoBankCommands;
+import org.evocraft.evocore.bank.EvoBankManager;
 import org.evocraft.evocore.vote.EvoVotifier;
 import org.evocraft.evocore.data.*;
 import org.evocraft.evocore.network.PacketHandler;
@@ -90,6 +92,7 @@ public class EvoCore {
         StaffTpCommand.register(event.getDispatcher());
         WarnCommands.register(event.getDispatcher());
         org.evocraft.evocore.vote.VoteCommands.register(event.getDispatcher());
+        EvoBankCommands.register(event.getDispatcher());
 
         // Comanda pentru NPC-uri Top
         TopNPCCommand.register(event.getDispatcher());
@@ -107,6 +110,7 @@ public class EvoCore {
         PlayerStatsManager.initialize();
         KitManager.get();
         CrateKeyManager.get();
+        EvoBankManager.initialize();
         HomeManager.initialize();
     }
 
@@ -115,6 +119,7 @@ public class EvoCore {
         PlayerStatsManager.get().save();
         EvoVotifier.stop();
         KitManager.get().save();
+        EvoBankManager.get().save();
         WarpManager.get().save();
     }
 
