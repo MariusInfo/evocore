@@ -17,9 +17,9 @@ public class EvoBankAtmMenu extends AbstractContainerMenu {
     public static final int CARD_SLOT = 0;
     public static final int DEPOSIT_SLOT = 1;
     public static final int BANK_SLOT_COUNT = 2;
-    public static final int CARD_SLOT_X = 43;
-    public static final int CARD_SLOT_Y = 72;
-    public static final int DEPOSIT_SLOT_X = 43;
+    public static final int CARD_SLOT_X = 55;
+    public static final int CARD_SLOT_Y = 78;
+    public static final int DEPOSIT_SLOT_X = 55;
     public static final int DEPOSIT_SLOT_Y = 133;
     public static final int INVENTORY_X = 95;
     public static final int INVENTORY_Y = 191;

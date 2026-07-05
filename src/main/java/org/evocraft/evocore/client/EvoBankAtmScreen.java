@@ -6,7 +6,9 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.entity.player.Inventory;
 import org.evocraft.evocore.bank.EvoBankAtmMenu;
 import org.evocraft.evocore.bank.EvoBankManager;
@@ -58,9 +60,12 @@ public class EvoBankAtmScreen extends AbstractContainerScreen<EvoBankAtmMenu> {
         int x = leftPos;
         int y = topPos;
 
-        pinBox = new EditBox(font, x + 25, y + 108, 72, 18, Component.literal("PIN"));
+        pinBox = new EditBox(font, x + 30, y + 121, 66, 18, Component.literal("PIN"));
         pinBox.setMaxLength(6);
         pinBox.setFilter(value -> value.matches("\\d{0,6}"));
+        pinBox.setFormatter((value, offset) -> value.isEmpty()
+                ? FormattedCharSequence.EMPTY
+                : FormattedCharSequence.forward("*".repeat(value.length()), Style.EMPTY));
         addRenderableWidget(pinBox);
 
         targetBox = new EditBox(font, x + 137, y + 94, 92, 18, Component.literal("Player"));
@@ -236,21 +241,19 @@ public class EvoBankAtmScreen extends AbstractContainerScreen<EvoBankAtmMenu> {
 
     private void drawCardPanel(GuiGraphics graphics, int x, int y) {
         panel(graphics, x + 12, y + 14, 102, 162, "CARD ACCESS");
-        graphics.drawString(font, cardStatus(), x + 25, y + 42, statusColor(), false);
-        graphics.drawString(font, "Card reader", x + 25, y + 61, MUTED, false);
-        graphics.fill(x + 34, y + 70, x + 69, y + 105, 0x8803100B);
-        frame(graphics, x + 34, y + 70, 35, 35, 0x773ADFA0);
-        slotFrame(graphics, x + EvoBankAtmMenu.CARD_SLOT_X, y + EvoBankAtmMenu.CARD_SLOT_Y, ClientBankAtmData.cardValid ? GREEN : GREEN_DARK);
+        graphics.drawCenteredString(font, "Status", x + 63, y + 37, MUTED);
+        drawStatusLine(graphics, x + 63, y + 50, cardStatus(), statusColor());
+        drawSlotWell(graphics, x + EvoBankAtmMenu.CARD_SLOT_X, y + EvoBankAtmMenu.CARD_SLOT_Y, ClientBankAtmData.cardValid ? GREEN : GREEN_DARK);
 
         if (ClientBankAtmData.authenticated && page == Page.DEPOSIT) {
-            graphics.drawString(font, "Cash slot", x + 25, y + 122, TEXT, false);
-            slotFrame(graphics, x + EvoBankAtmMenu.DEPOSIT_SLOT_X, y + EvoBankAtmMenu.DEPOSIT_SLOT_Y, GREEN);
+            graphics.drawCenteredString(font, "Cash slot", x + 63, y + 116, TEXT);
+            drawSlotWell(graphics, x + EvoBankAtmMenu.DEPOSIT_SLOT_X, y + EvoBankAtmMenu.DEPOSIT_SLOT_Y, GREEN);
         } else if (pinBox.visible) {
-            graphics.drawString(font, ClientBankAtmData.hasPin ? "Enter PIN" : "Set PIN", x + 25, y + 103, MUTED, false);
+            graphics.drawCenteredString(font, ClientBankAtmData.hasPin ? "Enter PIN" : "Set PIN", x + 63, y + 108, MUTED);
             drawButton(graphics, pinButton(x, y), ClientBankAtmData.hasPin ? "UNLOCK" : "SET PIN", true, false);
         } else {
-            graphics.drawString(font, "Insert card", x + 25, y + 103, MUTED, false);
-            graphics.drawString(font, "to continue", x + 25, y + 116, MUTED, false);
+            graphics.drawCenteredString(font, "Insert a card", x + 63, y + 112, MUTED);
+            graphics.drawCenteredString(font, "to continue", x + 63, y + 125, MUTED);
         }
     }
 
@@ -319,7 +322,7 @@ public class EvoBankAtmScreen extends AbstractContainerScreen<EvoBankAtmMenu> {
     }
 
     private void drawInventoryPanel(GuiGraphics graphics, int x, int y) {
-        panel(graphics, x + 12, y + 184, 328, 86, "PLAYER INVENTORY");
+        panel(graphics, x + 12, y + 184, 328, 86, "INVENTORY");
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
                 slotFrame(graphics, x + EvoBankAtmMenu.INVENTORY_X + col * 18, y + EvoBankAtmMenu.INVENTORY_Y + row * 18, 0x664BF2A8);
@@ -355,6 +358,19 @@ public class EvoBankAtmScreen extends AbstractContainerScreen<EvoBankAtmMenu> {
         frame(graphics, x - 1, y - 1, 18, 18, color);
     }
 
+    private void drawSlotWell(GuiGraphics graphics, int x, int y, int color) {
+        graphics.fillGradient(x - 5, y - 5, x + 21, y + 21, 0x7707140F, 0xAA020806);
+        frame(graphics, x - 5, y - 5, 26, 26, 0x5523F29B);
+        slotFrame(graphics, x, y, color);
+    }
+
+    private void drawStatusLine(GuiGraphics graphics, int x, int y, String label, int color) {
+        int totalWidth = 12 + font.width(label);
+        int startX = x - totalWidth / 2;
+        graphics.fill(startX, y + 3, startX + 5, y + 8, color);
+        graphics.drawString(font, label, startX + 12, y, color, false);
+    }
+
     private void drawButton(GuiGraphics graphics, Rect rect, String label, boolean active, boolean hover) {
         int border = active ? (hover ? 0xFF8DFFD0 : GREEN) : 0xFF365346;
         int top = active ? (hover ? 0xFF147D55 : 0xFF0E5D40) : 0xFF1A2A22;
@@ -367,11 +383,11 @@ public class EvoBankAtmScreen extends AbstractContainerScreen<EvoBankAtmMenu> {
     }
 
     private Rect pinButton(int x, int y) {
-        return new Rect(x + 25, y + 132, 72, 22);
+        return new Rect(x + 30, y + 147, 66, 20);
     }
 
     private Rect backButton(int x, int y) {
-        return new Rect(x + 272, y + 26, 54, 18);
+        return new Rect(x + 272, y + 21, 54, 18);
     }
 
     private Rect mainButton(int x, int y, int index) {
