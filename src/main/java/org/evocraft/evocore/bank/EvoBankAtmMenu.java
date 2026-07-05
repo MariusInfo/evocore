@@ -17,17 +17,18 @@ public class EvoBankAtmMenu extends AbstractContainerMenu {
     public static final int CARD_SLOT = 0;
     public static final int DEPOSIT_SLOT = 1;
     public static final int BANK_SLOT_COUNT = 2;
-    public static final int CARD_SLOT_X = 31;
-    public static final int CARD_SLOT_Y = 75;
-    public static final int DEPOSIT_SLOT_X = 31;
-    public static final int DEPOSIT_SLOT_Y = 136;
-    public static final int INVENTORY_X = 79;
-    public static final int INVENTORY_Y = 154;
-    public static final int HOTBAR_Y = 212;
+    public static final int CARD_SLOT_X = 43;
+    public static final int CARD_SLOT_Y = 72;
+    public static final int DEPOSIT_SLOT_X = 43;
+    public static final int DEPOSIT_SLOT_Y = 133;
+    public static final int INVENTORY_X = 95;
+    public static final int INVENTORY_Y = 191;
+    public static final int HOTBAR_Y = 249;
     public static final int[] WITHDRAW_AMOUNTS = {1, 5, 10, 50, 100, 1000, 10000};
 
     private final Inventory playerInventory;
     private final Container bankContainer;
+    private boolean depositSlotVisible = false;
     private UUID authenticatedAccount;
     private String authenticatedCardId = "";
 
@@ -63,6 +64,11 @@ public class EvoBankAtmMenu extends AbstractContainerMenu {
             @Override
             public boolean mayPlace(ItemStack stack) {
                 return EvoBankManager.isCashItem(stack);
+            }
+
+            @Override
+            public boolean isActive() {
+                return !playerInventory.player.level().isClientSide() || EvoBankAtmMenu.this.depositSlotVisible;
             }
         });
 
@@ -234,6 +240,13 @@ public class EvoBankAtmMenu extends AbstractContainerMenu {
         }
 
         if (EvoBankManager.get().transfer(from, to, amount)) {
+            ServerPlayer target = player.getServer() == null ? null : player.getServer().getPlayerList().getPlayer(to.ownerUuid);
+            if (target != null) {
+                target.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                        "\u00A7a[EvoBank] You received \u00A7e" + EvoBankManager.formatAmount(amount)
+                                + " Evo Cash\u00A7a from \u00A7f" + from.ownerName + "\u00A7a."
+                ));
+            }
             syncState("Transferred " + EvoBankManager.formatAmount(amount) + " Evo Cash to " + to.ownerName + ".", true);
         } else {
             syncState("Transfer failed. Check balance.", false);
@@ -295,5 +308,9 @@ public class EvoBankAtmMenu extends AbstractContainerMenu {
     private void clearAuthentication() {
         authenticatedAccount = null;
         authenticatedCardId = "";
+    }
+
+    public void setDepositSlotVisible(boolean depositSlotVisible) {
+        this.depositSlotVisible = depositSlotVisible;
     }
 }

@@ -6,6 +6,7 @@ import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.item.Item;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.common.extensions.IForgeMenuType;
@@ -48,11 +49,32 @@ public class EvoCore {
     // --- REGISTRUL PENTRU NPC ---
     public static final DeferredRegister<EntityType<?>> ENTITIES = DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, MODID);
     public static final DeferredRegister<MenuType<?>> MENUS = DeferredRegister.create(ForgeRegistries.MENU_TYPES, MODID);
+    public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
 
     public static final RegistryObject<EntityType<TopNPC>> TOP_NPC = ENTITIES.register("top_npc",
             () -> EntityType.Builder.of(TopNPC::new, MobCategory.MISC).sized(0.6f, 1.8f).build("top_npc"));
     public static final RegistryObject<MenuType<EvoBankAtmMenu>> EVO_BANK_ATM_MENU = MENUS.register("evobank_atm",
             () -> IForgeMenuType.create((containerId, inventory, data) -> new EvoBankAtmMenu(containerId, inventory)));
+    public static final RegistryObject<Item> EVOBANK_CARD = ITEMS.register("evobank_card",
+            () -> new Item(new Item.Properties().stacksTo(1)));
+    public static final RegistryObject<Item> EVOCASH_1 = ITEMS.register("evocash_1",
+            () -> new Item(new Item.Properties()));
+    public static final RegistryObject<Item> EVOCASH_5 = ITEMS.register("evocash_5",
+            () -> new Item(new Item.Properties()));
+    public static final RegistryObject<Item> EVOCASH_10 = ITEMS.register("evocash_10",
+            () -> new Item(new Item.Properties()));
+    public static final RegistryObject<Item> EVOCASH_50 = ITEMS.register("evocash_50",
+            () -> new Item(new Item.Properties()));
+    public static final RegistryObject<Item> EVOCASH_100 = ITEMS.register("evocash_100",
+            () -> new Item(new Item.Properties()));
+    public static final RegistryObject<Item> EVOCASH_500 = ITEMS.register("evocash_500",
+            () -> new Item(new Item.Properties()));
+    public static final RegistryObject<Item> EVOCASH_1000 = ITEMS.register("evocash_1000",
+            () -> new Item(new Item.Properties()));
+    public static final RegistryObject<Item> EVOCASH_5000 = ITEMS.register("evocash_5000",
+            () -> new Item(new Item.Properties()));
+    public static final RegistryObject<Item> EVOCASH_10000 = ITEMS.register("evocash_10000",
+            () -> new Item(new Item.Properties()));
 
     public EvoCore() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
@@ -60,6 +82,7 @@ public class EvoCore {
         // Înregistrăm entitățile în sistemul Forge
         ENTITIES.register(modEventBus);
         MENUS.register(modEventBus);
+        ITEMS.register(modEventBus);
 
         modEventBus.addListener((FMLCommonSetupEvent event) -> setup(event));
         MinecraftForge.EVENT_BUS.register(this);

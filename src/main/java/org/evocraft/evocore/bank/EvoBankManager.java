@@ -9,11 +9,12 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.npc.Villager;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraftforge.fml.loading.FMLPaths;
+import org.evocraft.evocore.EvoCore;
 import org.evocraft.evocore.data.EconomyManager;
 
 import java.io.File;
@@ -35,7 +36,6 @@ public class EvoBankManager {
     private static final String CARD_OWNER_NAME_TAG = "EvoBankOwnerName";
     private static final String CARD_ID_TAG = "EvoBankCardId";
     private static final String CASH_TAG = "EvoCash";
-    private static final int CARD_MODEL_DATA = 730001;
     private static final int DATA_VERSION = 2;
     private static final int PIN_RESET_COST = 5000;
     private static final int CARD_REPLACEMENT_COST = 25000;
@@ -276,7 +276,7 @@ public class EvoBankManager {
 
     public ItemStack createBankCard(ServerPlayer player) {
         BankAccount account = getOrCreateAccount(player);
-        ItemStack card = new ItemStack(Items.PAPER);
+        ItemStack card = new ItemStack(EvoCore.EVOBANK_CARD.get());
         card.setHoverName(Component.literal("\u00A7b\u00A7lEvoBank Card \u00A77- \u00A7f" + account.ownerName));
 
         CompoundTag tag = card.getOrCreateTag();
@@ -284,7 +284,6 @@ public class EvoBankManager {
         tag.putString(CARD_OWNER_TAG, account.ownerUuid.toString());
         tag.putString(CARD_OWNER_NAME_TAG, account.ownerName);
         tag.putString(CARD_ID_TAG, account.cardId);
-        tag.putInt("CustomModelData", CARD_MODEL_DATA);
         return card;
     }
 
@@ -357,24 +356,29 @@ public class EvoBankManager {
 
     public ItemStack createCashItem(int amount) {
         int safeAmount = Math.max(1, amount);
-        ItemStack moneyItem = new ItemStack(Items.PAPER);
+        ItemStack moneyItem = new ItemStack(getCashItem(safeAmount));
         moneyItem.setHoverName(Component.literal("\u00A76\u00A7lEvo Cash: \u00A7e" + formatAmount(safeAmount)));
         CompoundTag tag = moneyItem.getOrCreateTag();
         tag.putBoolean(CASH_TAG, true);
         tag.putInt("EvoMoney", safeAmount);
-        applyCashModel(moneyItem, safeAmount);
         return moneyItem;
     }
 
     public static boolean isCashItem(ItemStack stack) {
-        if (stack == null || stack.isEmpty() || !stack.hasTag()) return false;
+        if (stack == null || stack.isEmpty()) return false;
+        if (getCashAmountFromItem(stack) > 0) return true;
+        if (!stack.hasTag()) return false;
         CompoundTag tag = stack.getTag();
         return tag != null && tag.contains("EvoMoney") && tag.getInt("EvoMoney") > 0;
     }
 
     public static double getCashValue(ItemStack stack) {
-        if (!isCashItem(stack) || stack.getTag() == null) return 0.0D;
-        int amount = stack.getTag().getInt("EvoMoney");
+        if (!isCashItem(stack)) return 0.0D;
+        int amount = 0;
+        if (stack.getTag() != null && stack.getTag().contains("EvoMoney")) {
+            amount = stack.getTag().getInt("EvoMoney");
+        }
+        if (amount <= 0) amount = getCashAmountFromItem(stack);
         if (amount <= 0) return 0.0D;
         return amount * (double) stack.getCount();
     }
@@ -477,6 +481,35 @@ public class EvoBankManager {
             case 10000 -> 740100;
             default -> 0;
         };
+    }
+
+    private static Item getCashItem(int amount) {
+        return switch (amount) {
+            case 1 -> EvoCore.EVOCASH_1.get();
+            case 5 -> EvoCore.EVOCASH_5.get();
+            case 10 -> EvoCore.EVOCASH_10.get();
+            case 50 -> EvoCore.EVOCASH_50.get();
+            case 100 -> EvoCore.EVOCASH_100.get();
+            case 500 -> EvoCore.EVOCASH_500.get();
+            case 1000 -> EvoCore.EVOCASH_1000.get();
+            case 5000 -> EvoCore.EVOCASH_5000.get();
+            case 10000 -> EvoCore.EVOCASH_10000.get();
+            default -> EvoCore.EVOCASH_1.get();
+        };
+    }
+
+    private static int getCashAmountFromItem(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return 0;
+        if (stack.is(EvoCore.EVOCASH_1.get())) return 1;
+        if (stack.is(EvoCore.EVOCASH_5.get())) return 5;
+        if (stack.is(EvoCore.EVOCASH_10.get())) return 10;
+        if (stack.is(EvoCore.EVOCASH_50.get())) return 50;
+        if (stack.is(EvoCore.EVOCASH_100.get())) return 100;
+        if (stack.is(EvoCore.EVOCASH_500.get())) return 500;
+        if (stack.is(EvoCore.EVOCASH_1000.get())) return 1000;
+        if (stack.is(EvoCore.EVOCASH_5000.get())) return 5000;
+        if (stack.is(EvoCore.EVOCASH_10000.get())) return 10000;
+        return 0;
     }
 
     public static String formatAmount(double amount) {
