@@ -43,19 +43,8 @@ public class EvoBankAtmMenu extends ChestMenu {
     }
 
     private ItemStack createWithdrawButton(int amount) {
-        ItemStack item;
-        if (amount >= 10000) {
-            item = new ItemStack(Items.NETHER_STAR);
-        } else if (amount >= 1000) {
-            item = new ItemStack(Items.DIAMOND);
-        } else if (amount >= 100) {
-            item = new ItemStack(Items.EMERALD);
-        } else if (amount >= 50) {
-            item = new ItemStack(Items.GOLD_INGOT);
-        } else {
-            item = new ItemStack(Items.PAPER);
-        }
-
+        ItemStack item = new ItemStack(Items.PAPER);
+        EvoBankManager.applyCashModel(item, amount);
         item.setHoverName(Component.literal("\u00A76Withdraw \u00A7e" + EvoBankManager.formatAmount(amount) + " Evo Cash"));
         item.getOrCreateTag().putInt("EvoBankWithdrawAmount", amount);
         return item;

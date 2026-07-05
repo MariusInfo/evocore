@@ -1,0 +1,68 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "minecraft:item/paper"
+  },
+  "overrides": [
+    {
+      "predicate": {
+        "custom_model_data": 730001
+      },
+      "model": "evocore:item/evobank_card"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 730101
+      },
+      "model": "evocore:item/evocash_1"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 730105
+      },
+      "model": "evocore:item/evocash_5"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 730110
+      },
+      "model": "evocore:item/evocash_10"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 730150
+      },
+      "model": "evocore:item/evocash_50"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 730200
+      },
+      "model": "evocore:item/evocash_100"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 730600
+      },
+      "model": "evocore:item/evocash_500"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 731100
+      },
+      "model": "evocore:item/evocash_1000"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 735100
+      },
+      "model": "evocore:item/evocash_5000"
+    },
+    {
+      "predicate": {
+        "custom_model_data": 740100
+      },
+      "model": "evocore:item/evocash_10000"
+    }
+  ]
+}

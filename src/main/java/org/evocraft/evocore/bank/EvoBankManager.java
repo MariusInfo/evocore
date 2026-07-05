@@ -27,6 +27,7 @@ public class EvoBankManager {
     private static final String CARD_OWNER_NAME_TAG = "EvoBankOwnerName";
     private static final String CARD_ID_TAG = "EvoBankCardId";
     private static final String CASH_TAG = "EvoCash";
+    private static final int CARD_MODEL_DATA = 730001;
     private static final int DATA_VERSION = 1;
     private static final Set<Integer> WITHDRAW_AMOUNTS = Set.of(1, 5, 10, 50, 100, 1000, 10000);
 
@@ -203,6 +204,7 @@ public class EvoBankManager {
         tag.putString(CARD_OWNER_TAG, account.ownerUuid.toString());
         tag.putString(CARD_OWNER_NAME_TAG, account.ownerName);
         tag.putString(CARD_ID_TAG, account.cardId);
+        tag.putInt("CustomModelData", CARD_MODEL_DATA);
         return card;
     }
 
@@ -238,7 +240,30 @@ public class EvoBankManager {
         CompoundTag tag = moneyItem.getOrCreateTag();
         tag.putBoolean(CASH_TAG, true);
         tag.putInt("EvoMoney", safeAmount);
+        applyCashModel(moneyItem, safeAmount);
         return moneyItem;
+    }
+
+    public static void applyCashModel(ItemStack stack, int amount) {
+        int modelData = getCashModelData(amount);
+        if (modelData > 0) {
+            stack.getOrCreateTag().putInt("CustomModelData", modelData);
+        }
+    }
+
+    public static int getCashModelData(int amount) {
+        return switch (amount) {
+            case 1 -> 730101;
+            case 5 -> 730105;
+            case 10 -> 730110;
+            case 50 -> 730150;
+            case 100 -> 730200;
+            case 500 -> 730600;
+            case 1000 -> 731100;
+            case 5000 -> 735100;
+            case 10000 -> 740100;
+            default -> 0;
+        };
     }
 
     public boolean withdraw(ServerPlayer player, int amount) {
