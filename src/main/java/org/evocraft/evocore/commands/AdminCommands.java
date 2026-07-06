@@ -13,6 +13,7 @@ import net.minecraft.world.item.ItemStack;
 import org.evocraft.evocore.bank.EvoBankManager;
 import org.evocraft.evocore.data.EconomyManager;
 import org.evocraft.evocore.data.KitManager;
+import org.evocraft.evocore.util.EvoCurrencyFormatter;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -23,7 +24,7 @@ public class AdminCommands {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
 
         // ==========================================
-        // COMENZI ECONOMIE (/eco give/take/set/item)
+        // ECONOMY COMMANDS (/eco give/take/set/item)
         // ==========================================
         dispatcher.register(Commands.literal("eco")
                 .requires(source -> source.hasPermission(2)) // Doar Operatorii
@@ -36,9 +37,9 @@ public class AdminCommands {
                                             double amount = DoubleArgumentType.getDouble(context, "amount");
                                             for (ServerPlayer player : players) {
                                                 EconomyManager.get().addBalance(player.getUUID(), amount);
-                                                player.sendSystemMessage(Component.literal("§aAi primit §e" + amount + " Lei§a!"));
+                                                player.sendSystemMessage(Component.literal("§aYou received §e" + EvoCurrencyFormatter.formatWithCurrency(amount) + "§a!"));
                                             }
-                                            context.getSource().sendSuccess(() -> Component.literal("§aAi dat §e" + amount + " Lei §acelor " + players.size() + " jucători."), true);
+                                            context.getSource().sendSuccess(() -> Component.literal("§aAdded §e" + EvoCurrencyFormatter.formatWithCurrency(amount) + " §ato " + players.size() + " player(s)."), true);
                                             return 1;
                                         }))))
 
@@ -51,7 +52,7 @@ public class AdminCommands {
                                             for (ServerPlayer player : players) {
                                                 EconomyManager.get().removeBalance(player.getUUID(), amount);
                                             }
-                                            context.getSource().sendSuccess(() -> Component.literal("§aAi retras §e" + amount + " Lei."), true);
+                                            context.getSource().sendSuccess(() -> Component.literal("§aRemoved §e" + EvoCurrencyFormatter.formatWithCurrency(amount) + "§a."), true);
                                             return 1;
                                         }))))
 
@@ -64,12 +65,12 @@ public class AdminCommands {
                                             for (ServerPlayer player : players) {
                                                 EconomyManager.get().setBalance(player.getUUID(), amount);
                                             }
-                                            context.getSource().sendSuccess(() -> Component.literal("§aBalanța a fost setată la §e" + amount + " Lei."), true);
+                                            context.getSource().sendSuccess(() -> Component.literal("§aBalance was set to §e" + EvoCurrencyFormatter.formatWithCurrency(amount) + "§a."), true);
                                             return 1;
                                         }))))
 
                 // ==========================================
-                // NOU: CREEAZĂ ITEM FIZIC CU BANI PENTRU KIT-URI
+                // PHYSICAL CASH ITEM FOR KITS
                 // ==========================================
                 .then(Commands.literal("item")
                         .then(Commands.argument("amount", IntegerArgumentType.integer(1))
@@ -80,7 +81,7 @@ public class AdminCommands {
                                     ItemStack moneyItem = EvoBankManager.get().createCashItem(amount);
 
                                     player.getInventory().add(moneyItem);
-                                    player.sendSystemMessage(Component.literal("§a✔ Ai primit item-ul de §e" + amount + " Lei§a. Pune-l în inventar și dă /evokit create!"));
+                                    player.sendSystemMessage(Component.literal("§aYou received a §e" + EvoCurrencyFormatter.formatWithCurrency(amount) + "§a cash item. Keep it in your inventory and run /evokit create!"));
                                     return 1;
                                 })))
         );

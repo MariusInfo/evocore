@@ -29,7 +29,11 @@ import org.evocraft.evocore.commands.*;
 import org.evocraft.evocore.bank.EvoBankCommands;
 import org.evocraft.evocore.bank.EvoBankAtmMenu;
 import org.evocraft.evocore.bank.EvoBankManager;
+import org.evocraft.evocore.bank.EvoWalletCommands;
+import org.evocraft.evocore.bank.EvoWalletManager;
+import org.evocraft.evocore.bank.EvoWalletMenu;
 import org.evocraft.evocore.client.EvoBankAtmScreen;
+import org.evocraft.evocore.client.EvoWalletScreen;
 import org.evocraft.evocore.vote.EvoVotifier;
 import org.evocraft.evocore.data.*;
 import org.evocraft.evocore.network.PacketHandler;
@@ -45,6 +49,7 @@ import org.evocraft.evocore.npc.TopNPCRenderer;
 public class EvoCore {
 
     public static final String MODID = "evocore";
+    private static final int EVOCASH_ITEM_STACK_SIZE = 64;
 
     // --- REGISTRUL PENTRU NPC ---
     public static final DeferredRegister<EntityType<?>> ENTITIES = DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, MODID);
@@ -55,26 +60,28 @@ public class EvoCore {
             () -> EntityType.Builder.of(TopNPC::new, MobCategory.MISC).sized(0.6f, 1.8f).build("top_npc"));
     public static final RegistryObject<MenuType<EvoBankAtmMenu>> EVO_BANK_ATM_MENU = MENUS.register("evobank_atm",
             () -> IForgeMenuType.create((containerId, inventory, data) -> new EvoBankAtmMenu(containerId, inventory)));
+    public static final RegistryObject<MenuType<EvoWalletMenu>> EVO_WALLET_MENU = MENUS.register("evowallet",
+            () -> IForgeMenuType.create((containerId, inventory, data) -> new EvoWalletMenu(containerId, inventory)));
     public static final RegistryObject<Item> EVOBANK_CARD = ITEMS.register("evobank_card",
             () -> new Item(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> EVOCASH_1 = ITEMS.register("evocash_1",
-            () -> new Item(new Item.Properties()));
+            () -> new Item(new Item.Properties().stacksTo(EVOCASH_ITEM_STACK_SIZE)));
     public static final RegistryObject<Item> EVOCASH_5 = ITEMS.register("evocash_5",
-            () -> new Item(new Item.Properties()));
+            () -> new Item(new Item.Properties().stacksTo(EVOCASH_ITEM_STACK_SIZE)));
     public static final RegistryObject<Item> EVOCASH_10 = ITEMS.register("evocash_10",
-            () -> new Item(new Item.Properties()));
+            () -> new Item(new Item.Properties().stacksTo(EVOCASH_ITEM_STACK_SIZE)));
     public static final RegistryObject<Item> EVOCASH_50 = ITEMS.register("evocash_50",
-            () -> new Item(new Item.Properties()));
+            () -> new Item(new Item.Properties().stacksTo(EVOCASH_ITEM_STACK_SIZE)));
     public static final RegistryObject<Item> EVOCASH_100 = ITEMS.register("evocash_100",
-            () -> new Item(new Item.Properties()));
+            () -> new Item(new Item.Properties().stacksTo(EVOCASH_ITEM_STACK_SIZE)));
     public static final RegistryObject<Item> EVOCASH_500 = ITEMS.register("evocash_500",
-            () -> new Item(new Item.Properties()));
+            () -> new Item(new Item.Properties().stacksTo(EVOCASH_ITEM_STACK_SIZE)));
     public static final RegistryObject<Item> EVOCASH_1000 = ITEMS.register("evocash_1000",
-            () -> new Item(new Item.Properties()));
+            () -> new Item(new Item.Properties().stacksTo(EVOCASH_ITEM_STACK_SIZE)));
     public static final RegistryObject<Item> EVOCASH_5000 = ITEMS.register("evocash_5000",
-            () -> new Item(new Item.Properties()));
+            () -> new Item(new Item.Properties().stacksTo(EVOCASH_ITEM_STACK_SIZE)));
     public static final RegistryObject<Item> EVOCASH_10000 = ITEMS.register("evocash_10000",
-            () -> new Item(new Item.Properties()));
+            () -> new Item(new Item.Properties().stacksTo(EVOCASH_ITEM_STACK_SIZE)));
 
     public EvoCore() {
         IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
@@ -112,7 +119,10 @@ public class EvoCore {
 
         @SubscribeEvent
         public static void onClientSetup(FMLClientSetupEvent event) {
-            event.enqueueWork(() -> MenuScreens.register(EvoCore.EVO_BANK_ATM_MENU.get(), EvoBankAtmScreen::new));
+            event.enqueueWork(() -> {
+                MenuScreens.register(EvoCore.EVO_BANK_ATM_MENU.get(), EvoBankAtmScreen::new);
+                MenuScreens.register(EvoCore.EVO_WALLET_MENU.get(), EvoWalletScreen::new);
+            });
         }
     }
 
@@ -132,6 +142,7 @@ public class EvoCore {
         WarnCommands.register(event.getDispatcher());
         org.evocraft.evocore.vote.VoteCommands.register(event.getDispatcher());
         EvoBankCommands.register(event.getDispatcher());
+        EvoWalletCommands.register(event.getDispatcher());
 
         // Comanda pentru NPC-uri Top
         TopNPCCommand.register(event.getDispatcher());
@@ -150,6 +161,7 @@ public class EvoCore {
         KitManager.get();
         CrateKeyManager.get();
         EvoBankManager.initialize();
+        EvoWalletManager.initialize();
         HomeManager.initialize();
     }
 
@@ -159,6 +171,7 @@ public class EvoCore {
         EvoVotifier.stop();
         KitManager.get().save();
         EvoBankManager.get().save();
+        EvoWalletManager.get().save();
         WarpManager.get().save();
     }
 
@@ -188,6 +201,10 @@ public class EvoCore {
 
                         if (HomeManager.get() != null) {
                             HomeManager.get().syncHomes(player);
+                        }
+
+                        if (EvoBankManager.get() != null) {
+                            EvoBankManager.get().repairPlayerCardsAfterUpdate(player);
                         }
                     } catch (Exception e) {
                         System.err.println("[EvoCore] EROARE PRINSĂ LA LOGIN (Homes/Economy/Stats): Serverul a fost salvat!");

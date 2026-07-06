@@ -58,7 +58,7 @@ public class TopManager {
 
                     String filter = " AND uuid != '00000000-0000-0000-0000-000000000000' AND name NOT LIKE '?%' AND name NOT LIKE '§%' ";
 
-                    fetchCategory(conn, "bani", "SELECT uuid, name, balance AS val FROM player_stats WHERE balance > 0" + filter + "ORDER BY balance DESC LIMIT 3", false, " Lei", false);
+                    fetchCategory(conn, "bani", "SELECT uuid, name, balance AS val FROM player_stats WHERE balance > 0" + filter + "ORDER BY balance DESC LIMIT 3", false, " Evo", false);
                     fetchCategory(conn, "kills", "SELECT uuid, name, kills AS val FROM player_stats WHERE kills > 0" + filter + "ORDER BY kills DESC LIMIT 3", false, " Kills", false);
                     fetchCategory(conn, "decese", "SELECT uuid, name, deaths AS val FROM player_stats WHERE deaths > 0" + filter + "ORDER BY deaths DESC LIMIT 3", false, " Decese", false);
                     fetchCategory(conn, "ore", "SELECT uuid, name, playtime_sec AS val FROM player_stats WHERE playtime_sec > 0" + filter + "ORDER BY playtime_sec DESC LIMIT 3", true, " Ore", false);

@@ -22,9 +22,9 @@ public class EvoBankAtmMenu extends AbstractContainerMenu {
     public static final int DEPOSIT_SLOT_X = 55;
     public static final int DEPOSIT_SLOT_Y = 133;
     public static final int INVENTORY_X = 95;
-    public static final int INVENTORY_Y = 191;
-    public static final int HOTBAR_Y = 249;
-    public static final int[] WITHDRAW_AMOUNTS = {1, 5, 10, 50, 100, 1000, 10000};
+    public static final int INVENTORY_Y = 211;
+    public static final int HOTBAR_Y = 269;
+    public static final int[] WITHDRAW_AMOUNTS = {1, 5, 10, 50, 100, 500, 1000, 5000, 10000};
 
     private final Inventory playerInventory;
     private final Container bankContainer;
@@ -175,6 +175,10 @@ public class EvoBankAtmMenu extends AbstractContainerMenu {
     }
 
     public void handleWithdraw(ServerPlayer player, int amount) {
+        handleWithdraw(player, amount, false);
+    }
+
+    public void handleWithdraw(ServerPlayer player, int amount, boolean smartStack) {
         EvoBankManager.BankAccount account = getAuthenticatedAccount();
         if (account == null) {
             syncState("Unlock a card with PIN first.", false);
@@ -186,10 +190,57 @@ public class EvoBankAtmMenu extends AbstractContainerMenu {
             return;
         }
 
+        if (smartStack) {
+            EvoBankManager.WithdrawalResult result = EvoBankManager.get().withdrawSmartStackFromAccount(player, account, amount);
+            if (result.status == EvoBankManager.WithdrawalResult.Status.SUCCESS) {
+                syncState("Withdrawn " + EvoBankManager.formatMoney(result.amount) + " in " + result.noteCount + " notes.", true);
+            } else if (result.status == EvoBankManager.WithdrawalResult.Status.INVENTORY_FULL) {
+                player.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                        "\u00A7c[EvoBank] Your inventory is full. Free up slots before withdrawing Evo Cash."
+                ));
+                syncState("Inventory full. Free up slots first.", false);
+            } else if (result.status == EvoBankManager.WithdrawalResult.Status.NOT_ENOUGH_FUNDS) {
+                syncState("Not enough funds.", false);
+            } else {
+                syncState("Invalid withdrawal amount.", false);
+            }
+            return;
+        }
+
+        if (!EvoBankManager.get().canReceiveWithdrawal(player, amount)) {
+            player.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                    "\u00A7c[EvoBank] Your inventory is full. Free up a slot before withdrawing Evo Cash."
+            ));
+            syncState("Inventory full. Free up a slot first.", false);
+            return;
+        }
+
         if (EvoBankManager.get().withdrawFromAccount(player, account, amount)) {
-            syncState("Withdrawn " + EvoBankManager.formatAmount(amount) + " Evo Cash.", true);
+            syncState("Withdrawn " + EvoBankManager.formatMoney(amount) + ".", true);
         } else {
             syncState("Not enough funds.", false);
+        }
+    }
+
+    public void handleCustomWithdraw(ServerPlayer player, int amount) {
+        EvoBankManager.BankAccount account = getAuthenticatedAccount();
+        if (account == null) {
+            syncState("Unlock a card with PIN first.", false);
+            return;
+        }
+
+        EvoBankManager.WithdrawalResult result = EvoBankManager.get().withdrawCustomAmountFromAccount(player, account, amount);
+        if (result.status == EvoBankManager.WithdrawalResult.Status.SUCCESS) {
+            syncState("Withdrawn " + EvoBankManager.formatMoney(result.amount) + " in " + result.noteCount + " notes.", true);
+        } else if (result.status == EvoBankManager.WithdrawalResult.Status.INVENTORY_FULL) {
+            player.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                    "\u00A7c[EvoBank] Your inventory is full. Free up slots before withdrawing Evo Cash."
+            ));
+            syncState("Inventory full. Free up slots first.", false);
+        } else if (result.status == EvoBankManager.WithdrawalResult.Status.NOT_ENOUGH_FUNDS) {
+            syncState("Not enough funds.", false);
+        } else {
+            syncState("Enter a valid withdrawal amount.", false);
         }
     }
 
@@ -209,7 +260,7 @@ public class EvoBankAtmMenu extends AbstractContainerMenu {
 
         bankContainer.setItem(DEPOSIT_SLOT, ItemStack.EMPTY);
         if (EvoBankManager.get().depositToAccount(account, value)) {
-            syncState("Deposited " + EvoBankManager.formatAmount(value) + " Evo Cash.", true);
+            syncState("Deposited " + EvoBankManager.formatMoney(value) + ".", true);
         } else {
             player.getInventory().placeItemBackInInventory(stack);
             syncState("Deposit failed.", false);
@@ -243,11 +294,11 @@ public class EvoBankAtmMenu extends AbstractContainerMenu {
             ServerPlayer target = player.getServer() == null ? null : player.getServer().getPlayerList().getPlayer(to.ownerUuid);
             if (target != null) {
                 target.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                        "\u00A7a[EvoBank] You received \u00A7e" + EvoBankManager.formatAmount(amount)
-                                + " Evo Cash\u00A7a from \u00A7f" + from.ownerName + "\u00A7a."
+                        "\u00A7a[EvoBank] You received \u00A7e" + EvoBankManager.formatMoney(amount)
+                                + "\u00A7a from \u00A7f" + from.ownerName + "\u00A7a."
                 ));
             }
-            syncState("Transferred " + EvoBankManager.formatAmount(amount) + " Evo Cash to " + to.ownerName + ".", true);
+            syncState("Transferred " + EvoBankManager.formatMoney(amount) + " to " + to.ownerName + ".", true);
         } else {
             syncState("Transfer failed. Check balance.", false);
         }

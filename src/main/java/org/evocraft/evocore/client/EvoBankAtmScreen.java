@@ -44,12 +44,13 @@ public class EvoBankAtmScreen extends AbstractContainerScreen<EvoBankAtmMenu> {
     private EditBox pinBox;
     private EditBox targetBox;
     private EditBox amountBox;
+    private EditBox withdrawAmountBox;
     private String lastSoundMessage = "";
 
     public EvoBankAtmScreen(EvoBankAtmMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
         imageWidth = 352;
-        imageHeight = 282;
+        imageHeight = 302;
         titleLabelY = 10000;
         inventoryLabelY = 10000;
     }
@@ -77,6 +78,11 @@ public class EvoBankAtmScreen extends AbstractContainerScreen<EvoBankAtmMenu> {
         amountBox.setFilter(value -> value.matches("\\d{0,9}(\\.\\d{0,2})?"));
         addRenderableWidget(amountBox);
 
+        withdrawAmountBox = new EditBox(font, x + 139, y + 154, 96, 18, Component.literal("Custom amount"));
+        withdrawAmountBox.setMaxLength(9);
+        withdrawAmountBox.setFilter(value -> value.matches("\\d{0,9}"));
+        addRenderableWidget(withdrawAmountBox);
+
         applyStateFromClientData(false);
     }
 
@@ -100,6 +106,9 @@ public class EvoBankAtmScreen extends AbstractContainerScreen<EvoBankAtmMenu> {
         targetBox.setEditable(transferVisible);
         amountBox.visible = transferVisible;
         amountBox.setEditable(transferVisible);
+        boolean withdrawVisible = ClientBankAtmData.authenticated && page == Page.WITHDRAW;
+        withdrawAmountBox.visible = withdrawVisible;
+        withdrawAmountBox.setEditable(withdrawVisible);
         menu.setDepositSlotVisible(ClientBankAtmData.authenticated && page == Page.DEPOSIT);
 
         if (playSound && !ClientBankAtmData.message.isBlank() && !ClientBankAtmData.message.equals(lastSoundMessage)) {
@@ -217,10 +226,18 @@ public class EvoBankAtmScreen extends AbstractContainerScreen<EvoBankAtmMenu> {
             int[] amounts = EvoBankAtmMenu.WITHDRAW_AMOUNTS;
             for (int i = 0; i < amounts.length; i++) {
                 if (withdrawButton(x, y, i).contains(mouseX, mouseY)) {
-                    PacketHandler.INSTANCE.sendToServer(new PacketHandler.C2S_EvoBankAtmWithdraw(amounts[i]));
+                    PacketHandler.INSTANCE.sendToServer(new PacketHandler.C2S_EvoBankAtmWithdraw(
+                            amounts[i],
+                            net.minecraft.client.gui.screens.Screen.hasShiftDown()
+                    ));
                     playClick();
                     return true;
                 }
+            }
+            if (customWithdrawButton(x, y).contains(mouseX, mouseY)) {
+                sendCustomWithdraw();
+                playClick();
+                return true;
             }
         }
 
@@ -240,7 +257,7 @@ public class EvoBankAtmScreen extends AbstractContainerScreen<EvoBankAtmMenu> {
     }
 
     private void drawCardPanel(GuiGraphics graphics, int x, int y) {
-        panel(graphics, x + 12, y + 14, 102, 162, "CARD ACCESS");
+        panel(graphics, x + 12, y + 14, 102, 182, "CARD ACCESS");
         graphics.drawCenteredString(font, "Status", x + 63, y + 37, MUTED);
         drawStatusLine(graphics, x + 63, y + 50, cardStatus(), statusColor());
         drawSlotWell(graphics, x + EvoBankAtmMenu.CARD_SLOT_X, y + EvoBankAtmMenu.CARD_SLOT_Y, ClientBankAtmData.cardValid ? GREEN : GREEN_DARK);
@@ -258,7 +275,7 @@ public class EvoBankAtmScreen extends AbstractContainerScreen<EvoBankAtmMenu> {
     }
 
     private void drawContentPanel(GuiGraphics graphics, int x, int y, int mouseX, int mouseY) {
-        panel(graphics, x + 124, y + 14, 216, 162, pageTitle());
+        panel(graphics, x + 124, y + 14, 216, 182, pageTitle());
 
         if (!ClientBankAtmData.authenticated) {
             drawLockedContent(graphics, x, y);
@@ -268,7 +285,7 @@ public class EvoBankAtmScreen extends AbstractContainerScreen<EvoBankAtmMenu> {
         graphics.drawString(font, "Account", x + 138, y + 31, MUTED, false);
         graphics.drawString(font, ClientBankAtmData.ownerName, x + 185, y + 31, TEXT, false);
         graphics.drawString(font, "Balance", x + 138, y + 46, MUTED, false);
-        graphics.drawString(font, EvoBankManager.formatAmount(ClientBankAtmData.balance) + " Evo Cash", x + 185, y + 46, GREEN, false);
+        graphics.drawString(font, EvoBankManager.formatMoney(ClientBankAtmData.balance), x + 185, y + 46, GREEN, false);
 
         if (page != Page.MAIN) {
             drawButton(graphics, backButton(x, y), "< BACK", true, backButton(x, y).contains(mouseX, mouseY));
@@ -281,7 +298,7 @@ public class EvoBankAtmScreen extends AbstractContainerScreen<EvoBankAtmMenu> {
             case TRANSFER -> drawTransferPage(graphics, x, y, mouseX, mouseY);
         }
 
-        drawMessage(graphics, x + 135, y + 164);
+        drawMessage(graphics, x + 135, y + 183);
     }
 
     private void drawLockedContent(GuiGraphics graphics, int x, int y) {
@@ -299,12 +316,15 @@ public class EvoBankAtmScreen extends AbstractContainerScreen<EvoBankAtmMenu> {
     }
 
     private void drawWithdrawPage(GuiGraphics graphics, int x, int y, int mouseX, int mouseY) {
-        graphics.drawString(font, "Select amount", x + 139, y + 67, MUTED, false);
+        graphics.drawString(font, "Select amount", x + 139, y + 63, MUTED, false);
         int[] amounts = EvoBankAtmMenu.WITHDRAW_AMOUNTS;
         for (int i = 0; i < amounts.length; i++) {
             Rect rect = withdrawButton(x, y, i);
             drawButton(graphics, rect, shortAmount(amounts[i]), true, rect.contains(mouseX, mouseY));
         }
+        graphics.drawString(font, "Custom amount", x + 139, y + 143, MUTED, false);
+        Rect customButton = customWithdrawButton(x, y);
+        drawButton(graphics, customButton, "WITHDRAW", true, customButton.contains(mouseX, mouseY));
     }
 
     private void drawDepositPage(GuiGraphics graphics, int x, int y, int mouseX, int mouseY) {
@@ -322,7 +342,7 @@ public class EvoBankAtmScreen extends AbstractContainerScreen<EvoBankAtmMenu> {
     }
 
     private void drawInventoryPanel(GuiGraphics graphics, int x, int y) {
-        panel(graphics, x + 12, y + 184, 328, 86, "INVENTORY");
+        panel(graphics, x + 12, y + 204, 328, 86, "INVENTORY");
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 9; col++) {
                 slotFrame(graphics, x + EvoBankAtmMenu.INVENTORY_X + col * 18, y + EvoBankAtmMenu.INVENTORY_Y + row * 18, 0x664BF2A8);
@@ -395,7 +415,11 @@ public class EvoBankAtmScreen extends AbstractContainerScreen<EvoBankAtmMenu> {
     }
 
     private Rect withdrawButton(int x, int y, int index) {
-        return new Rect(x + 139 + (index % 4) * 45, y + 87 + (index / 4) * 28, 40, 23);
+        return new Rect(x + 139 + (index % 3) * 50, y + 73 + (index / 3) * 23, 44, 19);
+    }
+
+    private Rect customWithdrawButton(int x, int y) {
+        return new Rect(x + 242, y + 154, 66, 18);
     }
 
     private Rect depositButton(int x, int y) {
@@ -448,6 +472,7 @@ public class EvoBankAtmScreen extends AbstractContainerScreen<EvoBankAtmMenu> {
 
     private EditBox focusedTextBox() {
         if (pinBox != null && pinBox.visible && pinBox.isFocused()) return pinBox;
+        if (withdrawAmountBox != null && withdrawAmountBox.visible && withdrawAmountBox.isFocused()) return withdrawAmountBox;
         if (targetBox != null && targetBox.visible && targetBox.isFocused()) return targetBox;
         if (amountBox != null && amountBox.visible && amountBox.isFocused()) return amountBox;
         return null;
@@ -460,9 +485,26 @@ public class EvoBankAtmScreen extends AbstractContainerScreen<EvoBankAtmMenu> {
             playClick();
             return;
         }
+        if (page == Page.WITHDRAW && withdrawAmountBox != null && withdrawAmountBox.isFocused()) {
+            sendCustomWithdraw();
+            playClick();
+            return;
+        }
         if (page == Page.TRANSFER && (targetBox.isFocused() || amountBox.isFocused())) {
             PacketHandler.INSTANCE.sendToServer(new PacketHandler.C2S_EvoBankAtmTransfer(targetBox.getValue(), parseAmount(amountBox.getValue())));
             playClick();
+        }
+    }
+
+    private void sendCustomWithdraw() {
+        PacketHandler.INSTANCE.sendToServer(new PacketHandler.C2S_EvoBankAtmCustomWithdraw(parseWholeAmount(withdrawAmountBox.getValue())));
+    }
+
+    private int parseWholeAmount(String value) {
+        try {
+            return value == null || value.isBlank() ? 0 : Integer.parseInt(value);
+        } catch (NumberFormatException ignored) {
+            return 0;
         }
     }
 

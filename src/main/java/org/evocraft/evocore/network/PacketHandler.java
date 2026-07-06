@@ -51,8 +51,10 @@ public class PacketHandler {
         INSTANCE.registerMessage(nextId(), S2C_EvoBankAtmState.class, S2C_EvoBankAtmState::toBytes, S2C_EvoBankAtmState::new, S2C_EvoBankAtmState::handle);
         INSTANCE.registerMessage(nextId(), C2S_EvoBankAtmPin.class, C2S_EvoBankAtmPin::toBytes, C2S_EvoBankAtmPin::new, C2S_EvoBankAtmPin::handle);
         INSTANCE.registerMessage(nextId(), C2S_EvoBankAtmWithdraw.class, C2S_EvoBankAtmWithdraw::toBytes, C2S_EvoBankAtmWithdraw::new, C2S_EvoBankAtmWithdraw::handle);
+        INSTANCE.registerMessage(nextId(), C2S_EvoBankAtmCustomWithdraw.class, C2S_EvoBankAtmCustomWithdraw::toBytes, C2S_EvoBankAtmCustomWithdraw::new, C2S_EvoBankAtmCustomWithdraw::handle);
         INSTANCE.registerMessage(nextId(), C2S_EvoBankAtmDeposit.class, C2S_EvoBankAtmDeposit::toBytes, C2S_EvoBankAtmDeposit::new, C2S_EvoBankAtmDeposit::handle);
         INSTANCE.registerMessage(nextId(), C2S_EvoBankAtmTransfer.class, C2S_EvoBankAtmTransfer::toBytes, C2S_EvoBankAtmTransfer::new, C2S_EvoBankAtmTransfer::handle);
+        INSTANCE.registerMessage(nextId(), S2C_EvoWalletState.class, S2C_EvoWalletState::toBytes, S2C_EvoWalletState::new, S2C_EvoWalletState::handle);
 
         // --- AM INREGISTRAT PACHETUL PENTRU FLY AICI ---
         INSTANCE.registerMessage(nextId(), S2C_SyncFlyTime.class, S2C_SyncFlyTime::toBytes, S2C_SyncFlyTime::new, S2C_SyncFlyTime::handle);
@@ -272,24 +274,32 @@ public class PacketHandler {
 
     public static class C2S_EvoBankAtmWithdraw {
         public final int amount;
+        public final boolean smartStack;
 
         public C2S_EvoBankAtmWithdraw(int amount) {
+            this(amount, false);
+        }
+
+        public C2S_EvoBankAtmWithdraw(int amount, boolean smartStack) {
             this.amount = amount;
+            this.smartStack = smartStack;
         }
 
         public C2S_EvoBankAtmWithdraw(FriendlyByteBuf buf) {
             this.amount = buf.readInt();
+            this.smartStack = buf.readBoolean();
         }
 
         public void toBytes(FriendlyByteBuf buf) {
             buf.writeInt(amount);
+            buf.writeBoolean(smartStack);
         }
 
         public void handle(Supplier<NetworkEvent.Context> ctx) {
             ctx.get().enqueueWork(() -> {
                 ServerPlayer player = ctx.get().getSender();
                 if (player != null && player.containerMenu instanceof EvoBankAtmMenu menu) {
-                    menu.handleWithdraw(player, amount);
+                    menu.handleWithdraw(player, amount, smartStack);
                 }
             });
             ctx.get().setPacketHandled(true);
@@ -311,6 +321,32 @@ public class PacketHandler {
                 ServerPlayer player = ctx.get().getSender();
                 if (player != null && player.containerMenu instanceof EvoBankAtmMenu menu) {
                     menu.handleDeposit(player);
+                }
+            });
+            ctx.get().setPacketHandled(true);
+        }
+    }
+
+    public static class C2S_EvoBankAtmCustomWithdraw {
+        public final int amount;
+
+        public C2S_EvoBankAtmCustomWithdraw(int amount) {
+            this.amount = amount;
+        }
+
+        public C2S_EvoBankAtmCustomWithdraw(FriendlyByteBuf buf) {
+            this.amount = buf.readInt();
+        }
+
+        public void toBytes(FriendlyByteBuf buf) {
+            buf.writeInt(amount);
+        }
+
+        public void handle(Supplier<NetworkEvent.Context> ctx) {
+            ctx.get().enqueueWork(() -> {
+                ServerPlayer player = ctx.get().getSender();
+                if (player != null && player.containerMenu instanceof EvoBankAtmMenu menu) {
+                    menu.handleCustomWithdraw(player, amount);
                 }
             });
             ctx.get().setPacketHandled(true);
@@ -343,6 +379,47 @@ public class PacketHandler {
                     menu.handleTransfer(player, targetName, amount);
                 }
             });
+            ctx.get().setPacketHandled(true);
+        }
+    }
+
+    public static class S2C_EvoWalletState {
+        public final int[] cashCounts;
+        public final boolean hasCard;
+        public final String message;
+        public final boolean positive;
+
+        public S2C_EvoWalletState(int[] cashCounts, boolean hasCard, String message, boolean positive) {
+            this.cashCounts = cashCounts == null ? new int[0] : Arrays.copyOf(cashCounts, cashCounts.length);
+            this.hasCard = hasCard;
+            this.message = message == null ? "" : message;
+            this.positive = positive;
+        }
+
+        public S2C_EvoWalletState(FriendlyByteBuf buf) {
+            int size = Math.min(32, Math.max(0, buf.readInt()));
+            this.cashCounts = new int[size];
+            for (int i = 0; i < size; i++) {
+                this.cashCounts[i] = buf.readInt();
+            }
+            this.hasCard = buf.readBoolean();
+            this.message = buf.readUtf(128);
+            this.positive = buf.readBoolean();
+        }
+
+        public void toBytes(FriendlyByteBuf buf) {
+            buf.writeInt(cashCounts.length);
+            for (int count : cashCounts) {
+                buf.writeInt(count);
+            }
+            buf.writeBoolean(hasCard);
+            buf.writeUtf(message, 128);
+            buf.writeBoolean(positive);
+        }
+
+        public void handle(Supplier<NetworkEvent.Context> ctx) {
+            ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () ->
+                    org.evocraft.evocore.network.ClientPacketHandler.handleEvoWalletState(cashCounts, hasCard, message, positive)));
             ctx.get().setPacketHandled(true);
         }
     }

@@ -6,6 +6,7 @@ import java.util.UUID;
 // IMPORTURILE CLARE
 import org.evocraft.evocore.client.ClientBalanceData;
 import org.evocraft.evocore.client.ClientBankAtmData;
+import org.evocraft.evocore.client.ClientWalletData;
 import org.evocraft.evocore.client.ClientVanishData;
 import org.evocraft.evocore.vanish.VanishOverlay;
 import org.evocraft.evocore.client.ClientHomeData; // Importul nou pentru case
@@ -23,6 +24,10 @@ public class ClientPacketHandler {
         if (net.minecraft.client.Minecraft.getInstance().screen instanceof org.evocraft.evocore.client.EvoBankAtmScreen screen) {
             screen.applyStateFromClientData(true);
         }
+    }
+
+    public static void handleEvoWalletState(int[] cashCounts, boolean hasCard, String message, boolean positive) {
+        ClientWalletData.update(cashCounts, hasCard, message, positive);
     }
 
     public static void handlePlayerJoinLeave(String name, UUID uuid, boolean isJoin) {
