@@ -67,9 +67,9 @@ public class CombatLogManager {
             player.getAbilities().mayfly = false;
             player.getAbilities().flying = false;
             player.onUpdateAbilities();
-            player.sendSystemMessage(Component.literal("§c⚠ Ai intrat în combat! Fly-ul a fost dezactivat automat!"));
+            player.sendSystemMessage(Component.literal("§c⚠ You entered combat! Fly was disabled automatically!"));
         } else if (!wasInCombat) {
-            player.sendSystemMessage(Component.literal("§c[⚔] Ești în COMBAT! Nu ieși de pe server!"));
+            player.sendSystemMessage(Component.literal("§c[⚔] You are in COMBAT! Do not leave the server!"));
         }
 
         PacketHandler.sendToPlayer(new PacketHandler.S2C_SyncCombat(true, COMBAT_TIME_MS), player);
@@ -100,7 +100,7 @@ public class CombatLogManager {
         if (victim instanceof ServerPlayer deadPlayer) {
             if (combatMap.containsKey(deadPlayer.getUUID())) {
                 removeCombat(deadPlayer);
-                deadPlayer.sendSystemMessage(Component.literal("§a[✔] Ai murit și ai ieșit din combat."));
+                deadPlayer.sendSystemMessage(Component.literal("§a[✔] You died and left combat."));
             }
         }
 
@@ -115,7 +115,7 @@ public class CombatLogManager {
             // Ieși instant din combat dacă ținta moare (ȘI e o țintă validă, gen Player sau Boss)
             if (isValidCombatTarget(victim)) {
                 removeCombat(attacker);
-                attacker.sendSystemMessage(Component.literal("§a[✔] Ținta ta a murit! Ai ieșit instant din combat."));
+                attacker.sendSystemMessage(Component.literal("§a[✔] Your target died! You left combat instantly."));
             }
         }
     }
@@ -125,7 +125,7 @@ public class CombatLogManager {
         if (event.getParseResults().getContext().getSource().getEntity() instanceof ServerPlayer player) {
             if (isInCombat(player)) {
                 event.setCanceled(true);
-                player.sendSystemMessage(Component.literal("§4[!] Nu poți folosi nicio comandă în luptă!"));
+                player.sendSystemMessage(Component.literal("§4[!] You cannot use commands while in combat!"));
             }
         }
     }
@@ -138,7 +138,7 @@ public class CombatLogManager {
                     long remaining = combatMap.get(player.getUUID()) - System.currentTimeMillis();
                     if (remaining <= 0) {
                         removeCombat(player);
-                        player.sendSystemMessage(Component.literal("§a[✔] Ai ieșit din combat! Acum ești în siguranță."));
+                        player.sendSystemMessage(Component.literal("§a[✔] You left combat! You are safe now."));
                     } else {
                         PacketHandler.sendToPlayer(new PacketHandler.S2C_SyncCombat(true, remaining), player);
                     }
@@ -157,7 +157,7 @@ public class CombatLogManager {
                 MinecraftServer server = player.getServer();
                 if (server != null) {
                     server.getPlayerList().broadcastSystemMessage(
-                            Component.literal("§c[☠] §4" + player.getName().getString() + " §ca ieșit de pe server în timpul luptei și a murit!"),
+                            Component.literal("§c[☠] §4" + player.getName().getString() + " §cleft the server during combat and died!"),
                             false
                     );
                 }

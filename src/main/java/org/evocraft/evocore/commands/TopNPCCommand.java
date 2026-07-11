@@ -20,15 +20,15 @@ public class TopNPCCommand {
         dispatcher.register(Commands.literal("topnpc")
                 .requires(source -> source.hasPermission(2))
                 .then(Commands.literal("spawn")
-                        .then(Commands.argument("categorie", StringArgumentType.word())
-                                .then(Commands.argument("loc", IntegerArgumentType.integer(1, 3))
+                        .then(Commands.argument("category", StringArgumentType.word())
+                                .then(Commands.argument("rank", IntegerArgumentType.integer(1, 3))
                                         .executes(context -> {
                                             ServerPlayer player = context.getSource().getPlayerOrException();
-                                            String categorie = StringArgumentType.getString(context, "categorie").toLowerCase();
-                                            int loc = IntegerArgumentType.getInteger(context, "loc");
+                                            String category = normalizeCategory(StringArgumentType.getString(context, "category").toLowerCase());
+                                            int rank = IntegerArgumentType.getInteger(context, "rank");
 
-                                            if (!categorie.equals("bani") && !categorie.equals("ore") && !categorie.equals("claims") && !categorie.equals("plots") && !categorie.equals("kills") && !categorie.equals("decese")) {
-                                                player.sendSystemMessage(Component.literal("§c[!] Categoriile valide sunt: bani, ore, claims, plots, kills, decese."));
+                                            if (!category.equals("bani") && !category.equals("ore") && !category.equals("claims") && !category.equals("plots") && !category.equals("kills") && !category.equals("decese")) {
+                                                player.sendSystemMessage(Component.literal("§c[!] Valid categories: money, hours, claims, plots, kills, deaths."));
                                                 return 0;
                                             }
 
@@ -39,18 +39,18 @@ public class TopNPCCommand {
                                                 npc.setYBodyRot(player.getYRot());
                                                 npc.setYHeadRot(player.getYRot());
 
-                                                npc.setCategory(categorie);
-                                                npc.setRank(loc);
+                                                npc.setCategory(category);
+                                                npc.setRank(rank);
 
                                                 // Îi aplicăm datele pe loc, ca să nu aștepți 5 minute!
-                                                if (TopManager.topData.containsKey(categorie) && TopManager.topData.get(categorie).containsKey(loc)) {
-                                                    TopManager.TopEntry entry = TopManager.topData.get(categorie).get(loc);
+                                                if (TopManager.topData.containsKey(category) && TopManager.topData.get(category).containsKey(rank)) {
+                                                    TopManager.TopEntry entry = TopManager.topData.get(category).get(rank);
                                                     npc.setPlayerName(entry.name);
                                                     npc.setDisplayValue(entry.displayValue);
                                                 }
 
                                                 player.level().addFreshEntity(npc);
-                                                player.sendSystemMessage(Component.literal("§a[✔] Ai spawnat NPC-ul pentru " + categorie + " - Locul " + loc));
+                                                player.sendSystemMessage(Component.literal("§a[✔] Spawned NPC for " + displayCategory(category) + " - Rank " + rank));
                                             }
 
                                             return 1;
@@ -65,13 +65,13 @@ public class TopNPCCommand {
 
                             List<TopNPC> npcs = player.level().getEntitiesOfClass(TopNPC.class, box);
                             if (npcs.isEmpty()) {
-                                player.sendSystemMessage(Component.literal("§c[!] Nu s-a găsit niciun NPC în raza de 3 blocuri."));
+                                player.sendSystemMessage(Component.literal("§c[!] No NPC found within 3 blocks."));
                                 return 0;
                             }
 
                             TopNPC closest = npcs.get(0);
                             closest.discard();
-                            player.sendSystemMessage(Component.literal("§a[✔] NPC șters cu succes!"));
+                            player.sendSystemMessage(Component.literal("§a[✔] NPC removed successfully!"));
                             return 1;
                         })
                 )
@@ -79,10 +79,28 @@ public class TopNPCCommand {
                         .executes(context -> {
                             ServerPlayer player = context.getSource().getPlayerOrException();
                             TopManager.forceUpdateNow(player.getServer());
-                            player.sendSystemMessage(Component.literal("§a[✔] Ai forțat actualizarea clasamentului din baza de date!"));
+                            player.sendSystemMessage(Component.literal("§a[✔] Forced leaderboard refresh from the database!"));
                             return 1;
                         })
                 )
         );
+    }
+
+    private static String displayCategory(String category) {
+        return switch (category) {
+            case "bani" -> "money";
+            case "ore" -> "hours";
+            case "decese" -> "deaths";
+            default -> category;
+        };
+    }
+
+    private static String normalizeCategory(String category) {
+        return switch (category) {
+            case "money" -> "bani";
+            case "hours" -> "ore";
+            case "deaths" -> "decese";
+            default -> category;
+        };
     }
 }

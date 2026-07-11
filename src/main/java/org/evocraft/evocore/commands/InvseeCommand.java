@@ -33,7 +33,7 @@ public class InvseeCommand {
                             ServerPlayer targetPlayer = EntityArgument.getPlayer(context, "target");
 
                             if (sourcePlayer.getUUID().equals(targetPlayer.getUUID())) {
-                                sourcePlayer.sendSystemMessage(Component.literal("§c✖ Îți poți deschide propriul inventar cu tasta E!"));
+                                sourcePlayer.sendSystemMessage(Component.literal("§c✖ You can open your own inventory with the E key!"));
                                 return 0;
                             }
 
@@ -56,10 +56,10 @@ public class InvseeCommand {
 
                             sourcePlayer.openMenu(new SimpleMenuProvider(
                                     (id, inv, p) -> new ChestMenu(MenuType.GENERIC_9x4, id, inv, invWrapper, 4),
-                                    Component.literal("Inventar: " + targetPlayer.getName().getString())
+                                    Component.literal("Inventory: " + targetPlayer.getName().getString())
                             ));
 
-                            sourcePlayer.sendSystemMessage(Component.literal("§a✔ Inspectezi inventarul lui §l" + targetPlayer.getName().getString()));
+                            sourcePlayer.sendSystemMessage(Component.literal("§a✔ Inspecting §l" + targetPlayer.getName().getString() + "§r§a's inventory."));
                             return 1;
                         })
                 )

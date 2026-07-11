@@ -29,7 +29,7 @@ public class EvoVotifier {
             serverSocket = new ServerSocket(PORT);
             isRunning = true;
 
-            System.out.println("[EvoVotifier] Sistemul de votare a pornit pe portul " + PORT + "!");
+            System.out.println("[EvoVotifier] Vote system started on port " + PORT + "!");
 
             // Thread-ul principal care doar ACCEPTĂ conexiuni
             new Thread(() -> {
@@ -52,14 +52,14 @@ public class EvoVotifier {
 
                     } catch (Exception e) {
                         if (isRunning && !serverSocket.isClosed()) {
-                            System.err.println("[EvoVotifier] Eroare la acceptarea conexiunii: " + e.getMessage());
+                            System.err.println("[EvoVotifier] Error while accepting connection: " + e.getMessage());
                         }
                     }
                 }
             }, "EvoVotifier-Main-Thread").start();
 
         } catch (Exception e) {
-            System.err.println("[EvoVotifier] EROARE CRITICĂ: Nu am putut porni sistemul de vot!");
+            System.err.println("[EvoVotifier] CRITICAL ERROR: Could not start vote system!");
             e.printStackTrace();
         }
     }
@@ -102,7 +102,7 @@ public class EvoVotifier {
                     MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
                     if (server != null) {
                         server.execute(() -> {
-                            System.out.println("[EvoVotifier] Am primit un VOT VALID pentru: " + username);
+                            System.out.println("[EvoVotifier] Received a valid vote for: " + username);
                             server.getCommands().performPrefixedCommand(server.createCommandSourceStack(), "adminvote " + username);
                         });
                     }

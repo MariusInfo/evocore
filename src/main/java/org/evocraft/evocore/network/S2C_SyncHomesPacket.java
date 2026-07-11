@@ -32,7 +32,7 @@ public class S2C_SyncHomesPacket {
         buf.writeInt(homes.size());
         for (String home : homes) {
             // Blindaj suprem anti-crash!
-            buf.writeUtf(home != null ? home : "Necunoscut");
+            buf.writeUtf(home != null ? home : "Unknown");
         }
     }
 

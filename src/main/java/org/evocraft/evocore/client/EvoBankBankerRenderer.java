@@ -40,7 +40,8 @@ public class EvoBankBankerRenderer {
     private static boolean isBanker(Villager villager) {
         if (villager.getTags().contains(EvoBankManager.BANKER_TAG)) return true;
         return villager.hasCustomName()
-                && villager.getDisplayName().getString().contains("EvoBank Banker");
+                && (villager.getDisplayName().getString().contains("EvoBank Banker")
+                || villager.getDisplayName().getString().contains("Banker"));
     }
 
     private static void renderBanker(Villager villager, float partialTick, PoseStack poseStack, MultiBufferSource buffer, int packedLight) {

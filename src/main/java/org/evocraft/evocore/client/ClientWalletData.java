@@ -3,7 +3,7 @@ package org.evocraft.evocore.client;
 import java.util.Arrays;
 
 public final class ClientWalletData {
-    public static int[] cashCounts = new int[9];
+    public static long[] cashCounts = new long[9];
     public static boolean hasCard = false;
     public static String message = "";
     public static boolean positive = true;
@@ -11,7 +11,7 @@ public final class ClientWalletData {
     private ClientWalletData() {
     }
 
-    public static void update(int[] counts, boolean cardStored, String statusMessage, boolean statusPositive) {
+    public static void update(long[] counts, boolean cardStored, String statusMessage, boolean statusPositive) {
         cashCounts = Arrays.copyOf(counts, 9);
         hasCard = cardStored;
         message = statusMessage == null ? "" : statusMessage;

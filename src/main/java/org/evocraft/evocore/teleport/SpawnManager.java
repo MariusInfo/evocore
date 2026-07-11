@@ -81,7 +81,7 @@ public class SpawnManager {
         currentSpawn.pitch = player.getXRot();
 
         saveSpawn();
-        player.sendSystemMessage(Component.literal("§a[✔] Spawn-ul serverului a fost setat în locația curentă!"));
+        player.sendSystemMessage(Component.literal("§a[✔] Server spawn was set at your current location!"));
     }
 
     public static void teleportToSpawn(ServerPlayer player) {
@@ -91,14 +91,14 @@ public class SpawnManager {
         ServerLevel targetLevel = player.server.getLevel(dimKey);
 
         if (targetLevel == null) {
-            player.sendSystemMessage(Component.literal("§c[!] Eroare: Dimensiunea de spawn nu a fost găsită!"));
+            player.sendSystemMessage(Component.literal("§c[!] Error: spawn dimension was not found!"));
             return;
         }
 
         // Folosim TeleportManager pentru delay-ul de 3 secunde
         TeleportManager.queueTeleport(player, "Spawn", () -> {
             player.teleportTo(targetLevel, currentSpawn.x, currentSpawn.y, currentSpawn.z, currentSpawn.yaw, currentSpawn.pitch);
-            player.sendSystemMessage(Component.literal("§a[✔] Bine ai revenit la Spawn!"));
+            player.sendSystemMessage(Component.literal("§a[✔] Welcome back to Spawn!"));
         });
     }
 
@@ -106,7 +106,7 @@ public class SpawnManager {
         try (FileWriter writer = new FileWriter(SPAWN_FILE)) {
             GSON.toJson(currentSpawn, writer);
         } catch (IOException e) {
-            LOGGER.error("Nu s-a putut salva spawn-ul!", e);
+            LOGGER.error("Could not save spawn!", e);
         }
     }
 
@@ -115,7 +115,7 @@ public class SpawnManager {
             try (FileReader reader = new FileReader(SPAWN_FILE)) {
                 currentSpawn = GSON.fromJson(reader, SpawnData.class);
             } catch (IOException e) {
-                LOGGER.error("Nu s-a putut încărca spawn-ul!", e);
+                LOGGER.error("Could not load spawn!", e);
             }
         }
     }

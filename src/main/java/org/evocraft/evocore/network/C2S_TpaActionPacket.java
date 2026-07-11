@@ -35,7 +35,7 @@ public class C2S_TpaActionPacket {
             if (player != null) {
                 // Protecție Combat
                 if (CombatLogManager.isInCombat(player)) {
-                    player.sendSystemMessage(Component.literal("§c✖ Nu poți folosi teleportarea (TPA) cât ești în combat!"));
+                    player.sendSystemMessage(Component.literal("§c✖ You cannot use teleport requests (TPA) while in combat!"));
                     return;
                 }
                 TpaManager.sendTpaRequest(player, targetName, action.equals("tpahere"));

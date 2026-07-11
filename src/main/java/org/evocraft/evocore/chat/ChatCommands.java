@@ -26,10 +26,10 @@ public class ChatCommands {
 
                     if (ChatManager.isGlobalChatMuted) {
                         context.getSource().getServer().getPlayerList().broadcastSystemMessage(
-                                Component.literal("§8[§c§lANUNȚ§8] §fChat-ul global a fost §cOPRIT §fde către un administrator!"), false);
+                                Component.literal("§8[§c§lNOTICE§8] §fGlobal chat was §cDISABLED §fby an administrator!"), false);
                     } else {
                         context.getSource().getServer().getPlayerList().broadcastSystemMessage(
-                                Component.literal("§8[§c§lANUNȚ§8] §fChat-ul global a fost §aPORNIT§f! Acum puteți vorbi din nou."), false);
+                                Component.literal("§8[§c§lNOTICE§8] §fGlobal chat was §aENABLED§f! You can talk again."), false);
                     }
                     return 1;
                 })
@@ -43,15 +43,15 @@ public class ChatCommands {
                     try { return ChatManager.hasPermission(source.getPlayerOrException(), "evocore.mute"); }
                     catch (Exception e) { return source.hasPermission(2); }
                 })
-                .then(Commands.argument("jucator", EntityArgument.player())
+                .then(Commands.argument("player", EntityArgument.player())
                         .then(Commands.argument("minute", IntegerArgumentType.integer(1)) // Minim 1 minut
 
                                 // Execuție FĂRĂ Motiv
-                                .executes(context -> applyMute(context.getSource(), EntityArgument.getPlayer(context, "jucator"), IntegerArgumentType.getInteger(context, "minute"), "Nespecificat"))
+                                .executes(context -> applyMute(context.getSource(), EntityArgument.getPlayer(context, "player"), IntegerArgumentType.getInteger(context, "minute"), "Unspecified"))
 
                                 // Execuție CU Motiv
-                                .then(Commands.argument("motiv", StringArgumentType.greedyString())
-                                        .executes(context -> applyMute(context.getSource(), EntityArgument.getPlayer(context, "jucator"), IntegerArgumentType.getInteger(context, "minute"), StringArgumentType.getString(context, "motiv")))
+                                .then(Commands.argument("reason", StringArgumentType.greedyString())
+                                        .executes(context -> applyMute(context.getSource(), EntityArgument.getPlayer(context, "player"), IntegerArgumentType.getInteger(context, "minute"), StringArgumentType.getString(context, "reason")))
                                 )
                         ))
         );
@@ -64,13 +64,13 @@ public class ChatCommands {
                     try { return ChatManager.hasPermission(source.getPlayerOrException(), "evocore.mute"); }
                     catch (Exception e) { return source.hasPermission(2); }
                 })
-                .then(Commands.argument("jucator", EntityArgument.player())
+                .then(Commands.argument("player", EntityArgument.player())
                         .executes(context -> {
-                            ServerPlayer target = EntityArgument.getPlayer(context, "jucator");
+                            ServerPlayer target = EntityArgument.getPlayer(context, "player");
 
                             ChatManager.activeMutes.remove(target.getUUID());
-                            context.getSource().sendSuccess(() -> Component.literal("§aI-ai scos mute-ul lui " + target.getName().getString()), false);
-                            target.sendSystemMessage(Component.literal("§a✔ Ai primit UNMUTE de la un administrator! Poți vorbi pe chat."));
+                            context.getSource().sendSuccess(() -> Component.literal("§aRemoved mute from " + target.getName().getString()), false);
+                            target.sendSystemMessage(Component.literal("§a✔ You were unmuted by an administrator! You can talk in chat."));
                             return 1;
                         })
                 )
@@ -83,13 +83,13 @@ public class ChatCommands {
 
         // Anunțăm jucătorul
         target.sendSystemMessage(Component.literal("§8§m--------------------------------"));
-        target.sendSystemMessage(Component.literal("§c§lAI PRIMIT MUTE!"));
-        target.sendSystemMessage(Component.literal("§7Durată: §c" + minutes + " Minute §7(Timpul scade doar online)"));
-        target.sendSystemMessage(Component.literal("§7Motiv: §f" + reason));
+        target.sendSystemMessage(Component.literal("§c§lYOU HAVE BEEN MUTED!"));
+        target.sendSystemMessage(Component.literal("§7Duration: §c" + minutes + " minutes §7(timer decreases only while online)"));
+        target.sendSystemMessage(Component.literal("§7Reason: §f" + reason));
         target.sendSystemMessage(Component.literal("§8§m--------------------------------"));
 
         // Anunțăm staff-ul / publicul
-        source.sendSuccess(() -> Component.literal("§aI-ai dat mute lui " + target.getName().getString() + " pentru " + minutes + " minute."), true);
+        source.sendSuccess(() -> Component.literal("§aMuted " + target.getName().getString() + " for " + minutes + " minutes."), true);
         return 1;
     }
 }

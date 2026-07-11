@@ -25,15 +25,15 @@ public class VoteCommands {
                 .executes(context -> {
                     ServerPlayer player = context.getSource().getPlayerOrException();
 
-                    Component link = Component.literal("§a§l[CLICK AICI PENTRU A VOTA]")
+                    Component link = Component.literal("§a§l[CLICK HERE TO VOTE]")
                             .withStyle(style -> style
                                     .withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://evocraft.ro/vote.php"))
-                                    .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal("§eDeschide link-ul de vot!"))));
+                                    .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal("§eOpen the vote link!"))));
 
                     player.sendSystemMessage(Component.literal("§8§m----------------------------------------"));
-                    player.sendSystemMessage(Component.literal("§e⭐ §lVOTEAZĂ SERVERUL §e⭐"));
+                    player.sendSystemMessage(Component.literal("§e⭐ §lVOTE FOR THE SERVER §e⭐"));
                     player.sendSystemMessage(link);
-                    player.sendSystemMessage(Component.literal("§7(Recompense: §aCheie Vote§7)"));
+                    player.sendSystemMessage(Component.literal("§7(Reward: §aVote Key§7)"));
                     player.sendSystemMessage(Component.literal("§8§m----------------------------------------"));
 
                     return 1;
@@ -45,9 +45,9 @@ public class VoteCommands {
         // ==========================================
         dispatcher.register(Commands.literal("adminvote")
                 .requires(source -> source.hasPermission(2)) // Doar consola/operatorii pot rula asta
-                .then(Commands.argument("jucator", StringArgumentType.string())
+                .then(Commands.argument("player", StringArgumentType.string())
                         .executes(context -> {
-                            String playerName = StringArgumentType.getString(context, "jucator");
+                            String playerName = StringArgumentType.getString(context, "player");
 
                             // Căutăm UUID-ul jucătorului după nume
                             context.getSource().getServer().getProfileCache().get(playerName).ifPresentOrElse(profile -> {
@@ -59,8 +59,8 @@ public class VoteCommands {
                                 CompletableFuture.runAsync(() -> CrateKeyManager.get().addKeys(playerName, "vote", 1));
 
                                 // 2. Mesajul care va apărea peste tot
-                                String guiMessage = "§e" + playerName + " §fa votat și a primit §acheie vote§f!";
-                                Component chatMessage = Component.literal("§8[§a§lVOT§8] " + guiMessage + " Scrie §e/vote §fpentru link.");
+                                String guiMessage = "§e" + playerName + " §fvoted and received a §aVote Key§f!";
+                                Component chatMessage = Component.literal("§8[§a§lVOTE§8] " + guiMessage + " Type §e/vote §ffor the link.");
 
                                 // 3. Trimitem pe CHAT și pe ECRAN (GUI) la toată lumea!
                                 for (ServerPlayer player : context.getSource().getServer().getPlayerList().getPlayers()) {
@@ -68,17 +68,17 @@ public class VoteCommands {
                                     player.sendSystemMessage(chatMessage);
 
                                     // Notificarea GUI care glisează de sus!
-                                    PacketHandler.sendToPlayer(new PacketHandler.S2C_BroadcastNotification("§a§lVOT: §f" + guiMessage), player);
+                                    PacketHandler.sendToPlayer(new PacketHandler.S2C_BroadcastNotification("§a§lVOTE: §f" + guiMessage), player);
                                 }
 
                                 // 4. Trimitem un mesaj extra jucătorului dacă e online
                                 ServerPlayer onlinePlayer = context.getSource().getServer().getPlayerList().getPlayer(uuid);
                                 if (onlinePlayer != null) {
-                                    onlinePlayer.sendSystemMessage(Component.literal("§a✔ Îți mulțumim pentru vot! Cheia a fost adaugata in contul tău."));
+                                    onlinePlayer.sendSystemMessage(Component.literal("§a✔ Thank you for voting! The key was added to your account."));
                                 }
 
                             }, () -> {
-                                context.getSource().sendFailure(Component.literal("Jucătorul " + playerName + " nu există în baza de date."));
+                                context.getSource().sendFailure(Component.literal("Player " + playerName + " does not exist in the database."));
                             });
 
                             return 1;

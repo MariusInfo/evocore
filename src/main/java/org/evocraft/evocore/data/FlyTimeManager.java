@@ -33,7 +33,7 @@ public class FlyTimeManager {
                 stats.flyUsedSeconds = 0;
                 stats.flyLastDate = today;
                 PlayerStatsManager.get().saveToDatabase(player.getUUID()); // Salvăm cu sistemul de Auto-Retry!
-                player.sendSystemMessage(Component.literal("§a[!] Timpul tău de zbor a fost resetat pentru o nouă zi!"));
+                player.sendSystemMessage(Component.literal("§a[!] Your fly time has been reset for a new day!"));
             }
 
             // ========================================================
@@ -62,7 +62,7 @@ public class FlyTimeManager {
                     player.getAbilities().mayfly = false;
                     player.getAbilities().flying = false;
                     player.onUpdateAbilities();
-                    player.sendSystemMessage(Component.literal("§c✖ Timpul tău de zbor a expirat!"));
+                    player.sendSystemMessage(Component.literal("§c✖ Your fly time has expired!"));
                     PlayerStatsManager.get().saveToDatabase(player.getUUID());
 
                     PacketHandler.sendToPlayer(new PacketHandler.S2C_SyncFlyTime(false, 0), player);

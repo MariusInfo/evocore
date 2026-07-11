@@ -30,7 +30,7 @@ public class TopNPCRenderer extends LivingEntityRenderer<TopNPC, PlayerModel<Top
         String name = entity.getPlayerName();
         String uuidStr = entity.getUUIDStr();
 
-        if (name == null || name.equals("În curând...") || name.equals("Nimeni") || uuidStr == null || uuidStr.isEmpty()) {
+        if (name == null || name.equals("Coming soon...") || name.equals("În curând...") || name.equals("Nobody") || name.equals("Nimeni") || uuidStr == null || uuidStr.isEmpty()) {
             return DefaultPlayerSkin.getDefaultSkin(entity.getUUID());
         }
 
@@ -58,7 +58,7 @@ public class TopNPCRenderer extends LivingEntityRenderer<TopNPC, PlayerModel<Top
         double dist = this.entityRenderDispatcher.distanceToSqr(entity);
         if (dist <= 4096.0D) {
 
-            String title = "§e§lLocul " + entity.getRank() + " - " + capitalize(entity.getCategory());
+            String title = "§e§lRank " + entity.getRank() + " - " + displayCategory(entity.getCategory());
             String nameStr = "§f" + entity.getPlayerName();
             String valStr = "§a" + entity.getDisplayValue();
 
@@ -85,6 +85,18 @@ public class TopNPCRenderer extends LivingEntityRenderer<TopNPC, PlayerModel<Top
 
             poseStack.popPose();
         }
+    }
+
+    private String displayCategory(String category) {
+        return switch (category) {
+            case "bani" -> "Money";
+            case "ore" -> "Hours";
+            case "decese" -> "Deaths";
+            case "claims" -> "Protections";
+            case "plots" -> "Plots";
+            case "kills" -> "Kills";
+            default -> capitalize(category);
+        };
     }
 
     private String capitalize(String str) {

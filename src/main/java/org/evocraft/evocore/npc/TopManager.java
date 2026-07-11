@@ -60,16 +60,16 @@ public class TopManager {
 
                     fetchCategory(conn, "bani", "SELECT uuid, name, balance AS val FROM player_stats WHERE balance > 0" + filter + "ORDER BY balance DESC LIMIT 3", false, " Evo", false);
                     fetchCategory(conn, "kills", "SELECT uuid, name, kills AS val FROM player_stats WHERE kills > 0" + filter + "ORDER BY kills DESC LIMIT 3", false, " Kills", false);
-                    fetchCategory(conn, "decese", "SELECT uuid, name, deaths AS val FROM player_stats WHERE deaths > 0" + filter + "ORDER BY deaths DESC LIMIT 3", false, " Decese", false);
-                    fetchCategory(conn, "ore", "SELECT uuid, name, playtime_sec AS val FROM player_stats WHERE playtime_sec > 0" + filter + "ORDER BY playtime_sec DESC LIMIT 3", true, " Ore", false);
-                    fetchCategory(conn, "claims", "SELECT uuid, name, claims AS val FROM player_stats WHERE claims > 0" + filter + "ORDER BY claims DESC LIMIT 3", false, " Protecții", false);
+                    fetchCategory(conn, "decese", "SELECT uuid, name, deaths AS val FROM player_stats WHERE deaths > 0" + filter + "ORDER BY deaths DESC LIMIT 3", false, " Deaths", false);
+                    fetchCategory(conn, "ore", "SELECT uuid, name, playtime_sec AS val FROM player_stats WHERE playtime_sec > 0" + filter + "ORDER BY playtime_sec DESC LIMIT 3", true, " Hours", false);
+                    fetchCategory(conn, "claims", "SELECT uuid, name, claims AS val FROM player_stats WHERE claims > 0" + filter + "ORDER BY claims DESC LIMIT 3", false, " Protections", false);
 
                     String plotQuery = "SELECT s.uuid, s.name, COUNT(c.chunk_key) AS val FROM plot_claims c " +
                             "JOIN player_stats s ON c.owner_uuid = s.uuid " +
                             "WHERE s.uuid != '00000000-0000-0000-0000-000000000000' AND s.name NOT LIKE '?%' AND s.name NOT LIKE '§%' " +
                             "GROUP BY c.owner_uuid, s.uuid, s.name " +
                             "ORDER BY val DESC LIMIT 3";
-                    fetchCategory(conn, "plots", plotQuery, false, " Ploturi", true);
+                    fetchCategory(conn, "plots", plotQuery, false, " Plots", true);
 
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -103,7 +103,7 @@ public class TopManager {
                     displayVal = (int)val + suffix;
                 }
 
-                if (name != null && !name.isEmpty() && !name.equals("Necunoscut")) {
+                if (name != null && !name.isEmpty() && !name.equals("Necunoscut") && !name.equals("Unknown")) {
                     categoryMap.put(rank, new TopEntry(uuid, name, displayVal));
                     rank++;
                 }
@@ -127,7 +127,7 @@ public class TopManager {
                         npc.setDisplayValue(entry.displayValue);
                         npc.setUUIDStr(entry.uuid);
                     } else {
-                        npc.setPlayerName("În curând...");
+                        npc.setPlayerName("Coming soon...");
                         npc.setDisplayValue("0");
                         npc.setUUIDStr("");
                     }

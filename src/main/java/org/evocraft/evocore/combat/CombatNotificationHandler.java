@@ -64,28 +64,28 @@ public class CombatNotificationHandler {
             g.renderOutline(fX, fY, flyW, flyH, 0xFF55FFFF);
 
             // Rândul 1: Titlul
-            g.drawString(mc.font, "§b☄ FLY ACTIVAT", fX + 21, fY + 6, 0xFFFFFF, true);
+            g.drawString(mc.font, "§b☄ FLY ENABLED", fX + 21, fY + 6, 0xFFFFFF, true);
 
             // Rândul 2: Cronometrul inteligent citit din rețea
             int left = ClientFlyData.timeRemainingSeconds;
             String timeText;
 
             if (left == -1) {
-                timeText = "§aNelimitat";
+                timeText = "§aUnlimited";
             } else {
                 int hTime = left / 3600;
                 int mTime = (left % 3600) / 60;
 
                 // Formatăm textul în stil RPG ("1 oră, 50 min")
                 if (left >= 3600) {
-                    String orar = (hTime == 1) ? "1 oră" : hTime + " ore";
-                    timeText = orar + (mTime > 0 ? ", " + mTime + " min" : "");
+                    String hoursText = (hTime == 1) ? "1 hour" : hTime + " hours";
+                    timeText = hoursText + (mTime > 0 ? ", " + mTime + " min" : "");
                 }
                 else if (left >= 60) {
                     timeText = mTime + " min";
                 }
                 else {
-                    timeText = left + " secunde";
+                    timeText = left + " seconds";
                 }
 
                 // Colorăm în funcție de cât timp mai are
@@ -94,7 +94,7 @@ public class CombatNotificationHandler {
                 else timeText = "§a" + timeText; // Verde în rest
             }
 
-            g.drawString(mc.font, "§fTimp: " + timeText, fX + 16, fY + 20, 0xFFFFFF, true);
+            g.drawString(mc.font, "§fTime: " + timeText, fX + 16, fY + 20, 0xFFFFFF, true);
 
             g.pose().popPose();
         }
@@ -136,7 +136,7 @@ public class CombatNotificationHandler {
         String formattedTime = String.format("%.1fs", seconds);
 
         // Desenăm textul de combat
-        g.drawString(mc.font, "§c§l⚔ ÎN LUPTĂ ⚔", x + 25, y + 5, 0xFFFFFF, true);
-        g.drawString(mc.font, "§eTimp: §c" + formattedTime, x + 35, y + 17, 0xFFFFFF, true);
+        g.drawString(mc.font, "§c§l⚔ IN COMBAT ⚔", x + 25, y + 5, 0xFFFFFF, true);
+        g.drawString(mc.font, "§eTime: §c" + formattedTime, x + 35, y + 17, 0xFFFFFF, true);
     }
 }

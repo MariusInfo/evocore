@@ -39,7 +39,7 @@ public class TopNPC extends PathfinderMob {
         super.defineSynchedData();
         this.entityData.define(CATEGORY, "bani");
         this.entityData.define(RANK, 1);
-        this.entityData.define(PLAYER_NAME, "Nimeni");
+        this.entityData.define(PLAYER_NAME, "Nobody");
         this.entityData.define(DISPLAY_VALUE, "0");
         this.entityData.define(PLAYER_UUID_STR, "");
     }

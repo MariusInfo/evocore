@@ -22,7 +22,7 @@ public class EvoCoreCommands {
                 .requires(s -> s.hasPermission(2)) // Necesită OP
                 .then(Commands.literal("reload").executes(ctx -> {
                     TranslationManager.initialize();
-                    ctx.getSource().sendSuccess(() -> Component.literal("§a[EvoCore] Configurațiile de bază (Mesaje) au fost reîncărcate!"), true);
+                    ctx.getSource().sendSuccess(() -> Component.literal("§a[EvoCore] Core message configuration was reloaded!"), true);
                     return 1;
                 }))
         );

@@ -18,8 +18,7 @@ import java.util.Map;
 import java.util.UUID;
 
 public class EvoWalletManager {
-    public static final int DATA_VERSION = 1;
-    public static final int CASH_SLOT_LIMIT = 500;
+    public static final int DATA_VERSION = 2;
     public static final int PHYSICAL_WITHDRAW_STACK_LIMIT = 64;
     public static final int[] DENOMINATIONS = {1, 5, 10, 50, 100, 500, 1000, 5000, 10000};
 
@@ -48,8 +47,21 @@ public class EvoWalletManager {
         return -1;
     }
 
-    public static String formatCount(int count) {
-        return Integer.toString(Math.max(0, count));
+    public static String formatCount(long count) {
+        long safe = Math.max(0L, count);
+        if (safe < 1_000L) return Long.toString(safe);
+
+        double value = safe;
+        String[] suffixes = {"K", "M", "B", "T", "Q"};
+        int suffix = -1;
+        while (value >= 1_000.0D && suffix + 1 < suffixes.length) {
+            value /= 1_000.0D;
+            suffix++;
+        }
+
+        if (value >= 100.0D) return String.format("%.0f%s", value, suffixes[suffix]);
+        if (value >= 10.0D) return String.format("%.1f%s", value, suffixes[suffix]);
+        return String.format("%.2f%s", value, suffixes[suffix]);
     }
 
     private final Map<UUID, WalletData> wallets = new HashMap<>();
@@ -73,7 +85,8 @@ public class EvoWalletManager {
 
     public synchronized boolean setCard(UUID owner, ItemStack stack) {
         if (!EvoBankManager.isBankCardItem(stack) || hasCard(owner)) return false;
-        ItemStack stored = stack.copy();
+        ItemStack stored = EvoBankManager.get().normalizeBankCard(stack);
+        if (stored.isEmpty()) return false;
         stored.setCount(1);
         getOrCreate(owner).card = stored;
         save();
@@ -88,16 +101,16 @@ public class EvoWalletManager {
         return card;
     }
 
-    public synchronized int getCashCount(UUID owner, int denomination) {
-        if (!isSupportedDenomination(denomination)) return 0;
-        return getOrCreate(owner).cashCounts.getOrDefault(denomination, 0);
+    public synchronized long getCashCount(UUID owner, int denomination) {
+        if (!isSupportedDenomination(denomination)) return 0L;
+        return getOrCreate(owner).cashCounts.getOrDefault(denomination, 0L);
     }
 
-    public synchronized int[] getCashCounts(UUID owner) {
+    public synchronized long[] getCashCounts(UUID owner) {
         WalletData data = getOrCreate(owner);
-        int[] counts = new int[DENOMINATIONS.length];
+        long[] counts = new long[DENOMINATIONS.length];
         for (int i = 0; i < DENOMINATIONS.length; i++) {
-            counts[i] = data.cashCounts.getOrDefault(DENOMINATIONS[i], 0);
+            counts[i] = data.cashCounts.getOrDefault(DENOMINATIONS[i], 0L);
         }
         return counts;
     }
@@ -105,8 +118,9 @@ public class EvoWalletManager {
     public synchronized int addCash(UUID owner, int denomination, int requestedCount) {
         if (!isSupportedDenomination(denomination) || requestedCount <= 0) return 0;
         WalletData data = getOrCreate(owner);
-        int current = data.cashCounts.getOrDefault(denomination, 0);
-        int accepted = Math.min(requestedCount, CASH_SLOT_LIMIT - current);
+        long current = data.cashCounts.getOrDefault(denomination, 0L);
+        long acceptedLong = Math.min((long) requestedCount, Long.MAX_VALUE - current);
+        int accepted = acceptedLong > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) acceptedLong;
         if (accepted <= 0) return 0;
         data.cashCounts.put(denomination, current + accepted);
         save();
@@ -116,10 +130,10 @@ public class EvoWalletManager {
     public synchronized int removeCash(UUID owner, int denomination, int requestedCount) {
         if (!isSupportedDenomination(denomination) || requestedCount <= 0) return 0;
         WalletData data = getOrCreate(owner);
-        int current = data.cashCounts.getOrDefault(denomination, 0);
-        int removed = Math.min(requestedCount, current);
+        long current = data.cashCounts.getOrDefault(denomination, 0L);
+        int removed = (int) Math.min((long) requestedCount, current);
         if (removed <= 0) return 0;
-        int remaining = current - removed;
+        long remaining = current - removed;
         if (remaining > 0) {
             data.cashCounts.put(denomination, remaining);
         } else {
@@ -129,10 +143,10 @@ public class EvoWalletManager {
         return removed;
     }
 
-    public ItemStack createDisplayCashStack(int denomination, int count) {
+    public ItemStack createDisplayCashStack(int denomination, long count) {
         if (count <= 0 || !isSupportedDenomination(denomination)) return ItemStack.EMPTY;
         ItemStack stack = EvoBankManager.get().createCashItem(denomination);
-        stack.setCount(Math.min(PHYSICAL_WITHDRAW_STACK_LIMIT, count));
+        stack.setCount(1);
         return stack;
     }
 
@@ -227,11 +241,11 @@ public class EvoWalletManager {
 
                 ListTag cashList = new ListTag();
                 for (int denomination : DENOMINATIONS) {
-                    int count = data.cashCounts.getOrDefault(denomination, 0);
+                    long count = data.cashCounts.getOrDefault(denomination, 0L);
                     if (count <= 0) continue;
                     CompoundTag cash = new CompoundTag();
                     cash.putInt("Denomination", denomination);
-                    cash.putInt("Count", Math.min(CASH_SLOT_LIMIT, count));
+                    cash.putLong("Count", count);
                     cashList.add(cash);
                 }
                 tag.put("Cash", cashList);
@@ -268,7 +282,10 @@ public class EvoWalletManager {
                 if (tag.contains("Card")) {
                     ItemStack card = ItemStack.of(tag.getCompound("Card"));
                     if (EvoBankManager.isBankCardItem(card)) {
-                        data.card = card;
+                        ItemStack normalized = EvoBankManager.get().normalizeBankCard(card);
+                        if (!normalized.isEmpty()) {
+                            data.card = normalized;
+                        }
                     }
                 }
 
@@ -276,9 +293,9 @@ public class EvoWalletManager {
                 for (int c = 0; c < cashList.size(); c++) {
                     CompoundTag cash = cashList.getCompound(c);
                     int denomination = cash.getInt("Denomination");
-                    int count = cash.getInt("Count");
+                    long count = cash.getLong("Count");
                     if (isSupportedDenomination(denomination) && count > 0) {
-                        data.cashCounts.put(denomination, Math.min(CASH_SLOT_LIMIT, count));
+                        data.cashCounts.put(denomination, count);
                     }
                 }
 
@@ -292,7 +309,7 @@ public class EvoWalletManager {
 
     public static class WalletData {
         private ItemStack card = ItemStack.EMPTY;
-        private final Map<Integer, Integer> cashCounts = new HashMap<>();
+        private final Map<Integer, Long> cashCounts = new HashMap<>();
 
         private boolean isEmpty() {
             return card.isEmpty() && cashCounts.values().stream().allMatch(count -> count <= 0);

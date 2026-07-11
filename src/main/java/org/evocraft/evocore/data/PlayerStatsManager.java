@@ -16,7 +16,7 @@ public class PlayerStatsManager {
     private static PlayerStatsManager INSTANCE;
 
     public static class PlayerStats {
-        public String name = "Necunoscut";
+        public String name = "Unknown";
         public double balance = 0.0;
         public int kills = 0;
         public int deaths = 0;
@@ -67,7 +67,7 @@ public class PlayerStatsManager {
                 if (bestPrefix != null && !bestPrefix.isEmpty()) return bestPrefix.replace('&', '§').replaceAll("(?i)§[k-o]", "").trim();
             }
         } catch (Exception e) {}
-        return "§7Membru";
+        return "§7Member";
     }
 
     public void loadAllFromDatabase() {
@@ -110,7 +110,7 @@ public class PlayerStatsManager {
                         }
                         statsCache.put(uuid, s);
                     }
-                    System.out.println("[EvoCore] Am încărcat statisticile și economia (inclusiv Fly) din Baza de Date.");
+                    System.out.println("[EvoCore] Loaded statistics and economy data (including Fly) from the database.");
                 }
             } catch (Exception e) { e.printStackTrace(); }
         }
@@ -182,7 +182,7 @@ public class PlayerStatsManager {
                         }
                     } catch (Exception e) {
                         retries++;
-                        System.err.println("[EvoCore] Timeout Bază de Date! Reîncerc conexiunea... (" + retries + "/2)");
+                        System.err.println("[EvoCore] Database timeout! Retrying connection... (" + retries + "/2)");
                         try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
                     }
                 }
@@ -225,7 +225,7 @@ public class PlayerStatsManager {
     public Map<String, Double> getTopData(String type) {
         Map<String, Double> map = new HashMap<>();
         for (PlayerStats s : statsCache.values()) {
-            if (s.name == null || s.name.equals("Necunoscut")) continue;
+            if (s.name == null || s.name.equals("Necunoscut") || s.name.equals("Unknown")) continue;
             if (type.equals("kills") && s.kills > 0) map.put(s.name, (double) s.kills);
             if (type.equals("decese") && s.deaths > 0) map.put(s.name, (double) s.deaths);
             if (type.equals("ore") && s.playtimeSeconds > 0) map.put(s.name, s.playtimeSeconds / 3600.0);

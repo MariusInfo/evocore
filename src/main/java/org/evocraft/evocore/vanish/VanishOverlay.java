@@ -53,7 +53,7 @@ public class VanishOverlay {
         g.fill(x + 3, y, x + boxWidth - 3, y + 1, themeColor);
         g.fill(x + 3, y + boxHeight - 1, x + boxWidth - 3, y + boxHeight, themeColor);
 
-        g.drawCenteredString(mc.font, "§a§l👻 EȘTI INVIZIBIL", x + boxWidth / 2, y + 8, 0xFFFFFF);
+        g.drawCenteredString(mc.font, "§a§lVANISHED", x + boxWidth / 2, y + 8, 0xFFFFFF);
 
         g.pose().popPose();
     }

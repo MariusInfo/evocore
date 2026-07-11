@@ -7,6 +7,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.npc.Villager;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -20,12 +21,28 @@ public class EvoBankEvents {
         if (event.getHand() != InteractionHand.MAIN_HAND) return;
         Entity target = event.getTarget();
         if (!(target instanceof Villager) || !target.getTags().contains(EvoBankManager.BANKER_TAG)) return;
+        normalizeBankerName(target);
 
         event.setCanceled(true);
         event.setCancellationResult(InteractionResult.SUCCESS);
 
         if (event.getEntity() instanceof ServerPlayer player) {
             EvoBankManager.get().handleBankerInteraction(player);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onBankerLoad(EntityJoinLevelEvent event) {
+        normalizeBankerName(event.getEntity());
+    }
+
+    private static void normalizeBankerName(Entity entity) {
+        if (entity instanceof Villager villager && villager.getTags().contains(EvoBankManager.BANKER_TAG)) {
+            if (!villager.hasCustomName() || !villager.getDisplayName().getString().contains("Banker")
+                    || villager.getDisplayName().getString().contains("EvoBank Banker")) {
+                villager.setCustomName(Component.literal("\u00A76\u00A7lBanker"));
+                villager.setCustomNameVisible(true);
+            }
         }
     }
 

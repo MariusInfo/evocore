@@ -2,6 +2,7 @@ package org.evocraft.evocore.network;
 
 import org.evocraft.evocore.EvoCore;
 import org.evocraft.evocore.bank.EvoBankAtmMenu;
+import org.evocraft.evocore.bank.EvoBankerMenu;
 import org.evocraft.evocore.data.PlayerStatsManager;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
@@ -54,6 +55,8 @@ public class PacketHandler {
         INSTANCE.registerMessage(nextId(), C2S_EvoBankAtmCustomWithdraw.class, C2S_EvoBankAtmCustomWithdraw::toBytes, C2S_EvoBankAtmCustomWithdraw::new, C2S_EvoBankAtmCustomWithdraw::handle);
         INSTANCE.registerMessage(nextId(), C2S_EvoBankAtmDeposit.class, C2S_EvoBankAtmDeposit::toBytes, C2S_EvoBankAtmDeposit::new, C2S_EvoBankAtmDeposit::handle);
         INSTANCE.registerMessage(nextId(), C2S_EvoBankAtmTransfer.class, C2S_EvoBankAtmTransfer::toBytes, C2S_EvoBankAtmTransfer::new, C2S_EvoBankAtmTransfer::handle);
+        INSTANCE.registerMessage(nextId(), S2C_EvoBankerState.class, S2C_EvoBankerState::toBytes, S2C_EvoBankerState::new, S2C_EvoBankerState::handle);
+        INSTANCE.registerMessage(nextId(), C2S_EvoBankerService.class, C2S_EvoBankerService::toBytes, C2S_EvoBankerService::new, C2S_EvoBankerService::handle);
         INSTANCE.registerMessage(nextId(), S2C_EvoWalletState.class, S2C_EvoWalletState::toBytes, S2C_EvoWalletState::new, S2C_EvoWalletState::handle);
 
         // --- AM INREGISTRAT PACHETUL PENTRU FLY AICI ---
@@ -108,14 +111,14 @@ public class PacketHandler {
                             UUID targetId = profile.getId();
                             if (block && !stats.blockedPlayers.contains(targetId.toString())) {
                                 stats.blockedPlayers.add(targetId.toString());
-                                p.sendSystemMessage(Component.literal("§aL-ai blocat pe " + targetName + " de la TPA/Trade!"));
+                                p.sendSystemMessage(Component.literal("§aBlocked " + targetName + " from TPA/Trade!"));
                             } else if (!block) {
                                 stats.blockedPlayers.remove(targetId.toString());
-                                p.sendSystemMessage(Component.literal("§aL-ai deblocat pe " + targetName + " !"));
+                                p.sendSystemMessage(Component.literal("§aUnblocked " + targetName + "!"));
                             }
                             PlayerStatsManager.get().saveToDatabase(p.getUUID());
                         }, () -> {
-                            p.sendSystemMessage(Component.literal("§cJucătorul nu a fost găsit pe server!"));
+                            p.sendSystemMessage(Component.literal("§cPlayer was not found on the server!"));
                         });
                     }
                 }
@@ -383,14 +386,80 @@ public class PacketHandler {
         }
     }
 
+    public static class S2C_EvoBankerState {
+        public final boolean hasAccount;
+        public final String ownerName;
+        public final double balance;
+        public final String message;
+        public final boolean positive;
+
+        public S2C_EvoBankerState(boolean hasAccount, String ownerName, double balance, String message, boolean positive) {
+            this.hasAccount = hasAccount;
+            this.ownerName = ownerName == null ? "" : ownerName;
+            this.balance = balance;
+            this.message = message == null ? "" : message;
+            this.positive = positive;
+        }
+
+        public S2C_EvoBankerState(FriendlyByteBuf buf) {
+            this.hasAccount = buf.readBoolean();
+            this.ownerName = buf.readUtf(32);
+            this.balance = buf.readDouble();
+            this.message = buf.readUtf(128);
+            this.positive = buf.readBoolean();
+        }
+
+        public void toBytes(FriendlyByteBuf buf) {
+            buf.writeBoolean(hasAccount);
+            buf.writeUtf(ownerName, 32);
+            buf.writeDouble(balance);
+            buf.writeUtf(message, 128);
+            buf.writeBoolean(positive);
+        }
+
+        public void handle(Supplier<NetworkEvent.Context> ctx) {
+            ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () ->
+                    org.evocraft.evocore.network.ClientPacketHandler.handleEvoBankerState(
+                            hasAccount, ownerName, balance, message, positive
+                    )));
+            ctx.get().setPacketHandled(true);
+        }
+    }
+
+    public static class C2S_EvoBankerService {
+        public final String service;
+
+        public C2S_EvoBankerService(String service) {
+            this.service = service == null ? "" : service;
+        }
+
+        public C2S_EvoBankerService(FriendlyByteBuf buf) {
+            this.service = buf.readUtf(16);
+        }
+
+        public void toBytes(FriendlyByteBuf buf) {
+            buf.writeUtf(service, 16);
+        }
+
+        public void handle(Supplier<NetworkEvent.Context> ctx) {
+            ctx.get().enqueueWork(() -> {
+                ServerPlayer player = ctx.get().getSender();
+                if (player != null && player.containerMenu instanceof EvoBankerMenu menu) {
+                    menu.handleService(player, service);
+                }
+            });
+            ctx.get().setPacketHandled(true);
+        }
+    }
+
     public static class S2C_EvoWalletState {
-        public final int[] cashCounts;
+        public final long[] cashCounts;
         public final boolean hasCard;
         public final String message;
         public final boolean positive;
 
-        public S2C_EvoWalletState(int[] cashCounts, boolean hasCard, String message, boolean positive) {
-            this.cashCounts = cashCounts == null ? new int[0] : Arrays.copyOf(cashCounts, cashCounts.length);
+        public S2C_EvoWalletState(long[] cashCounts, boolean hasCard, String message, boolean positive) {
+            this.cashCounts = cashCounts == null ? new long[0] : Arrays.copyOf(cashCounts, cashCounts.length);
             this.hasCard = hasCard;
             this.message = message == null ? "" : message;
             this.positive = positive;
@@ -398,9 +467,9 @@ public class PacketHandler {
 
         public S2C_EvoWalletState(FriendlyByteBuf buf) {
             int size = Math.min(32, Math.max(0, buf.readInt()));
-            this.cashCounts = new int[size];
+            this.cashCounts = new long[size];
             for (int i = 0; i < size; i++) {
-                this.cashCounts[i] = buf.readInt();
+                this.cashCounts[i] = buf.readLong();
             }
             this.hasCard = buf.readBoolean();
             this.message = buf.readUtf(128);
@@ -409,8 +478,8 @@ public class PacketHandler {
 
         public void toBytes(FriendlyByteBuf buf) {
             buf.writeInt(cashCounts.length);
-            for (int count : cashCounts) {
-                buf.writeInt(count);
+            for (long count : cashCounts) {
+                buf.writeLong(count);
             }
             buf.writeBoolean(hasCard);
             buf.writeUtf(message, 128);

@@ -36,20 +36,20 @@ public class RTPCommand {
                             long secondsLeft = (COOLDOWN_MS - timePassed) / 1000;
                             long minutes = secondsLeft / 60;
                             long seconds = secondsLeft % 60;
-                            player.sendSystemMessage(Component.literal("§c⏳ Trebuie să aștepți " + minutes + "m și " + seconds + "s pentru un nou RTP!"));
+                            player.sendSystemMessage(Component.literal("§c⏳ You must wait " + minutes + "m " + seconds + "s before using RTP again!"));
                             return 0;
                         }
                     }
 
                     // Pornește teleportarea asincronă cu 5 secunde așteptare
-                    TeleportManager.queueTeleport(player, "Teleportare Aleatorie (RTP)", () -> {
+                    TeleportManager.queueTeleport(player, "Random Teleport (RTP)", () -> {
                         ServerLevel level = player.serverLevel();
                         Random random = new Random();
 
                         int targetX = 0, targetZ = 0, targetY = 0;
                         BlockPos finalPos = null;
 
-                        player.sendSystemMessage(Component.literal("§e[EvoCore] Se caută o locație sigură..."));
+                        player.sendSystemMessage(Component.literal("§e[EvoCore] Searching for a safe location..."));
 
                         // Încercăm de maxim 10 ori să găsim pământ uscat și sigur
                         for (int i = 0; i < 10; i++) {
@@ -92,10 +92,10 @@ public class RTPCommand {
                         if (finalPos != null) {
                             // Teleportăm jucătorul
                             player.teleportTo(level, finalPos.getX() + 0.5, finalPos.getY(), finalPos.getZ() + 0.5, player.getYRot(), player.getXRot());
-                            player.sendSystemMessage(Component.literal("§a✔ Ai fost teleportat într-o zonă aleatorie!"));
+                            player.sendSystemMessage(Component.literal("§a✔ You were teleported to a random area!"));
                             rtpCooldowns.put(uuid, System.currentTimeMillis()); // Punem cooldown-ul
                         } else {
-                            player.sendSystemMessage(Component.literal("§c✖ Nu am putut găsi o locație sigură (doar oceane/zone invalide). Încearcă din nou!"));
+                            player.sendSystemMessage(Component.literal("§c✖ Could not find a safe location (only oceans/invalid areas). Try again!"));
                         }
                     });
 

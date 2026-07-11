@@ -112,12 +112,12 @@ public class AdminCommands {
                                             }
 
                                             if (items.isEmpty()) {
-                                                player.sendSystemMessage(Component.literal("§cInventarul tău este gol! Pune iteme în inventar pentru a crea kit-ul."));
+                                                player.sendSystemMessage(Component.literal("§cYour inventory is empty! Put items in your inventory to create the kit."));
                                                 return 0;
                                             }
 
                                             KitManager.get().createKit(name, cd, items);
-                                            player.sendSystemMessage(Component.literal("§a✔ Kit-ul §l" + name + " §aa fost creat și salvat!"));
+                                            player.sendSystemMessage(Component.literal("§a✔ Kit §l" + name + " §awas created and saved!"));
                                             return 1;
                                         }))))
 
@@ -127,7 +127,7 @@ public class AdminCommands {
                                 .executes(context -> {
                                     String name = StringArgumentType.getString(context, "name");
                                     KitManager.get().deleteKit(name);
-                                    context.getSource().sendSuccess(() -> Component.literal("§c✔ Kit-ul " + name + " a fost șters din baza de date!"), true);
+                                    context.getSource().sendSuccess(() -> Component.literal("§c✔ Kit " + name + " was deleted from the database!"), true);
                                     return 1;
                                 })))
 
@@ -161,12 +161,12 @@ public class AdminCommands {
                                     ItemStack icon = player.getMainHandItem();
 
                                     if (icon.isEmpty()) {
-                                        player.sendSystemMessage(Component.literal("§cTrebuie să ții un item în mână pentru a-l seta ca iconiță a warp-ului!"));
+                                        player.sendSystemMessage(Component.literal("§cYou must hold an item in your hand to set it as the warp icon!"));
                                         return 0;
                                     }
 
                                     org.evocraft.evocore.data.WarpManager.get().createWarp(name, player, icon);
-                                    player.sendSystemMessage(Component.literal("§a✔ Warp-ul §l" + name + " §aa fost creat la locația ta exactă!"));
+                                    player.sendSystemMessage(Component.literal("§a✔ Warp §l" + name + " §awas created at your exact location!"));
                                     return 1;
                                 })))
 
@@ -175,7 +175,7 @@ public class AdminCommands {
                                 .executes(context -> {
                                     String name = com.mojang.brigadier.arguments.StringArgumentType.getString(context, "name");
                                     org.evocraft.evocore.data.WarpManager.get().deleteWarp(name);
-                                    context.getSource().sendSuccess(() -> Component.literal("§c✔ Warp-ul " + name + " a fost șters!"), true);
+                                    context.getSource().sendSuccess(() -> Component.literal("§c✔ Warp " + name + " was deleted!"), true);
                                     return 1;
                                 })))
         );

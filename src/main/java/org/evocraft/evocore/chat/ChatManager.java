@@ -109,7 +109,7 @@ public class ChatManager {
                     int left = activeMutes.get(uuid) - 1;
                     if (left <= 0) {
                         activeMutes.remove(uuid);
-                        player.sendSystemMessage(Component.literal("§a✔ Mute-ul tău a expirat! Poți folosi chat-ul din nou."));
+                        player.sendSystemMessage(Component.literal("§a✔ Your mute has expired! You can use chat again."));
                     } else {
                         activeMutes.put(uuid, left);
                     }
@@ -128,7 +128,7 @@ public class ChatManager {
 
         // Verificăm dacă e GLOBAL MUTE (Bypass pentru grade)
         if (isGlobalChatMuted && !hasPermission(player, "evocore.mutechat.bypass")) {
-            player.sendSystemMessage(Component.literal("§c✖ Chat-ul global este OPRIT momentan pentru toată lumea!"));
+            player.sendSystemMessage(Component.literal("§c✖ Global chat is currently disabled for everyone!"));
             event.setCanceled(true);
             return;
         }
@@ -139,8 +139,8 @@ public class ChatManager {
             int minutes = timeLeft / 60;
             int seconds = timeLeft % 60;
 
-            player.sendSystemMessage(Component.literal("§c✖ Ai primit MUTE pe chat!"));
-            player.sendSystemMessage(Component.literal("§c✖ Mai ai de așteptat: §e" + minutes + "m și " + seconds + "s§c (Trebuie să fii online ca timpul să scadă)."));
+            player.sendSystemMessage(Component.literal("§c✖ You are muted in chat!"));
+            player.sendSystemMessage(Component.literal("§c✖ Time remaining: §e" + minutes + "m " + seconds + "s§c (you must stay online for the timer to decrease)."));
             event.setCanceled(true);
         }
     }

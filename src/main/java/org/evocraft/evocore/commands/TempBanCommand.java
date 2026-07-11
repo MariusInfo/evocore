@@ -22,20 +22,20 @@ public class TempBanCommand {
         // Format comanda: /tempban <NumeJucator> <Timp> <Motiv>
         dispatcher.register(Commands.literal("tempban")
                 .requires(source -> BroadcastCommand.hasLuckPermission(source, "evocore.ban"))
-                .then(Commands.argument("jucatori", GameProfileArgument.gameProfile())
-                        .then(Commands.argument("timp", StringArgumentType.word()) // Ex: 1d, 12h, 30m
-                                .then(Commands.argument("motiv", StringArgumentType.greedyString())
+                .then(Commands.argument("players", GameProfileArgument.gameProfile())
+                        .then(Commands.argument("time", StringArgumentType.word()) // Ex: 1d, 12h, 30m
+                                .then(Commands.argument("reason", StringArgumentType.greedyString())
                                         .executes(context -> {
                                             CommandSourceStack source = context.getSource();
-                                            Collection<GameProfile> targets = GameProfileArgument.getGameProfiles(context, "jucatori");
-                                            String timeStr = StringArgumentType.getString(context, "timp");
-                                            String reason = StringArgumentType.getString(context, "motiv");
+                                            Collection<GameProfile> targets = GameProfileArgument.getGameProfiles(context, "players");
+                                            String timeStr = StringArgumentType.getString(context, "time");
+                                            String reason = StringArgumentType.getString(context, "reason");
                                             String adminName = source.getTextName();
 
                                             // 1. Calculăm timpul în milisecunde
                                             long durationMillis = parseTime(timeStr);
                                             if (durationMillis <= 0) {
-                                                source.sendFailure(Component.literal("§cFormat de timp invalid! Folosește: 1d, 12h, 30m, 10s"));
+                                                source.sendFailure(Component.literal("§cInvalid time format! Use: 1d, 12h, 30m, 10s"));
                                                 return 0;
                                             }
 
@@ -60,10 +60,10 @@ public class TempBanCommand {
                                                 ServerPlayer onlinePlayer = source.getServer().getPlayerList().getPlayer(profile.getId());
                                                 if (onlinePlayer != null) {
                                                     onlinePlayer.connection.disconnect(Component.literal(
-                                                            "§c§lAI FOST BANAT TEMPORAR!\n\n" +
-                                                                    "§7Motiv: §f" + reason + "\n" +
-                                                                    "§7Expiră la: §e" + expireDate.toString() + "\n" +
-                                                                    "§7Banat de: §b" + adminName
+                                                            "§c§lYOU HAVE BEEN TEMPORARILY BANNED!\n\n" +
+                                                                    "§7Reason: §f" + reason + "\n" +
+                                                                    "§7Expires at: §e" + expireDate.toString() + "\n" +
+                                                                    "§7Banned by: §b" + adminName
                                                     ));
                                                 }
                                             }
@@ -71,7 +71,7 @@ public class TempBanCommand {
                                             if (bannedCount > 0) {
                                                 // AICI E REZOLVAREA EROARII: Înghețăm valoarea pentru a o putea folosi în Lambda
                                                 final int finalBannedCount = bannedCount;
-                                                source.sendSuccess(() -> Component.literal("§a✔ Ai dat tempban la " + finalBannedCount + " jucător(i) pentru " + timeStr + "."), true);
+                                                source.sendSuccess(() -> Component.literal("§a✔ Temp-banned " + finalBannedCount + " player(s) for " + timeStr + "."), true);
                                             }
 
                                             return bannedCount;

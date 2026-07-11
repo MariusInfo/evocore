@@ -7,7 +7,6 @@ import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.player.Inventory;
-import org.evocraft.evocore.bank.EvoBankManager;
 import org.evocraft.evocore.bank.EvoWalletManager;
 import org.evocraft.evocore.bank.EvoWalletMenu;
 
@@ -27,8 +26,8 @@ public class EvoWalletScreen extends AbstractContainerScreen<EvoWalletMenu> {
 
     public EvoWalletScreen(EvoWalletMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
-        imageWidth = 352;
-        imageHeight = 250;
+        imageWidth = 384;
+        imageHeight = 330;
         titleLabelY = 10000;
         inventoryLabelY = 10000;
     }
@@ -61,14 +60,14 @@ public class EvoWalletScreen extends AbstractContainerScreen<EvoWalletMenu> {
         graphics.fillGradient(x, y, x + imageWidth, y + imageHeight, BG, 0xF00B1712);
         frame(graphics, x, y, imageWidth, imageHeight, 0xCC23F29B);
 
-        panel(graphics, x + 12, y + 14, 96, 108, "WALLET CARD");
-        panel(graphics, x + 124, y + 14, 216, 108, "EVO CASH");
-        panel(graphics, x + 12, y + 134, 328, 104, "INVENTORY");
+        panel(graphics, x + 14, y + 14, 112, 174, "WALLET CARD");
+        panel(graphics, x + 140, y + 14, 230, 174, "EVO CASH");
+        panel(graphics, x + 14, y + 210, 356, 104, "INVENTORY");
 
         drawCardPanel(graphics, x, y);
         drawCashPanel(graphics, x, y);
         drawInventoryPanel(graphics, x, y);
-        drawMessage(graphics, x + 22, y + 112);
+        drawMessage(graphics, x + 24, y + 194);
     }
 
     @Override
@@ -76,25 +75,24 @@ public class EvoWalletScreen extends AbstractContainerScreen<EvoWalletMenu> {
     }
 
     private void drawCardPanel(GuiGraphics graphics, int x, int y) {
-        graphics.drawCenteredString(font, ClientWalletData.hasCard ? "Card stored" : "No card", x + 60, y + 40,
+        int centerX = x + EvoWalletMenu.CARD_SLOT_X + 8;
+        graphics.drawCenteredString(font, ClientWalletData.hasCard ? "Card stored" : "No card", centerX, y + 58,
                 ClientWalletData.hasCard ? GREEN : MUTED);
         drawSlotWell(graphics, x + EvoWalletMenu.CARD_SLOT_X, y + EvoWalletMenu.CARD_SLOT_Y,
                 ClientWalletData.hasCard ? GREEN : GREEN_DARK);
-        graphics.drawCenteredString(font, "1 slot", x + 60, y + 86, MUTED);
+        graphics.drawCenteredString(font, "1 slot", centerX, y + 136, MUTED);
     }
 
     private void drawCashPanel(GuiGraphics graphics, int x, int y) {
-        graphics.drawString(font, "Capacity", x + 137, y + 31, MUTED, false);
-        graphics.drawString(font, EvoWalletManager.CASH_SLOT_LIMIT + " notes each", x + 187, y + 31, TEXT, false);
+        graphics.drawCenteredString(font, "Capacity: unlimited", x + 255, y + 34, MUTED);
 
         for (int i = 0; i < EvoWalletManager.DENOMINATIONS.length; i++) {
             int col = i % 3;
             int row = i / 3;
-            int sx = x + EvoWalletMenu.CASH_GRID_X + col * 42;
-            int sy = y + EvoWalletMenu.CASH_GRID_Y + row * 31;
-            int count = i < ClientWalletData.cashCounts.length ? ClientWalletData.cashCounts[i] : 0;
+            int sx = x + EvoWalletMenu.CASH_GRID_X + col * EvoWalletMenu.CASH_GRID_COL_SPACING;
+            int sy = y + EvoWalletMenu.CASH_GRID_Y + row * EvoWalletMenu.CASH_GRID_ROW_SPACING;
+            long count = i < ClientWalletData.cashCounts.length ? ClientWalletData.cashCounts[i] : 0L;
             drawSlotWell(graphics, sx, sy, count > 0 ? GREEN : GREEN_DARK);
-            graphics.drawCenteredString(font, shortAmount(EvoWalletManager.DENOMINATIONS[i]), sx + 8, sy + 20, count > 0 ? TEXT : MUTED);
         }
     }
 
@@ -113,18 +111,19 @@ public class EvoWalletScreen extends AbstractContainerScreen<EvoWalletMenu> {
         int x = leftPos;
         int y = topPos;
         for (int i = 0; i < EvoWalletManager.DENOMINATIONS.length; i++) {
-            int count = i < ClientWalletData.cashCounts.length ? ClientWalletData.cashCounts[i] : 0;
+            long count = i < ClientWalletData.cashCounts.length ? ClientWalletData.cashCounts[i] : 0L;
             if (count <= 0) continue;
 
             int col = i % 3;
             int row = i / 3;
-            int sx = x + EvoWalletMenu.CASH_GRID_X + col * 42;
-            int sy = y + EvoWalletMenu.CASH_GRID_Y + row * 31;
+            int sx = x + EvoWalletMenu.CASH_GRID_X + col * EvoWalletMenu.CASH_GRID_COL_SPACING;
+            int sy = y + EvoWalletMenu.CASH_GRID_Y + row * EvoWalletMenu.CASH_GRID_ROW_SPACING;
             String label = EvoWalletManager.formatCount(count);
-            int tx = sx + 17 - font.width(label);
-            int ty = sy + 9;
-            graphics.fill(tx - 1, ty - 1, sx + 18, ty + 9, 0xCC03100B);
-            graphics.drawString(font, label, tx, ty, count >= EvoWalletManager.CASH_SLOT_LIMIT ? WARN : TEXT, false);
+            int labelWidth = font.width(label);
+            int tx = sx + 8 - labelWidth / 2;
+            int ty = sy + 24;
+            graphics.fill(tx - 3, ty - 1, tx + labelWidth + 3, ty + 9, 0xCC03100B);
+            graphics.drawString(font, label, tx, ty, TEXT, false);
         }
     }
 
@@ -158,11 +157,6 @@ public class EvoWalletScreen extends AbstractContainerScreen<EvoWalletMenu> {
         graphics.fillGradient(x - 5, y - 5, x + 21, y + 21, 0x7707140F, 0xAA020806);
         frame(graphics, x - 5, y - 5, 26, 26, 0x5523F29B);
         slotFrame(graphics, x, y, color);
-    }
-
-    private String shortAmount(int amount) {
-        if (amount >= 1000) return EvoBankManager.formatAmount(amount);
-        return Integer.toString(amount);
     }
 
     private String trim(String value, int maxWidth) {

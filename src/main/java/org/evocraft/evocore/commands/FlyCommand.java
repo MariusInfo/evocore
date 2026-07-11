@@ -37,19 +37,19 @@ public class FlyCommand {
                     }
 
                     if (maxSeconds == 0) {
-                        player.sendSystemMessage(Component.literal("§c✖ Nu ai rank-ul necesar pentru a folosi fly!"));
+                        player.sendSystemMessage(Component.literal("§c✖ You do not have the required rank to use fly!"));
                         return 0;
                     }
 
                     // 2. Verificăm dacă și-a consumat deja timpul pe ziua respectivă
                     if (maxSeconds != -1 && FlyTimeManager.getUsedSeconds(player) >= maxSeconds) {
-                        player.sendSystemMessage(Component.literal("§c✖ Ți-ai consumat limita de zbor pe ziua de azi!"));
+                        player.sendSystemMessage(Component.literal("§c✖ You have used your fly limit for today!"));
                         return 0;
                     }
 
                     // 3. Verificăm combat log-ul tău
                     if (CombatLogManager.isInCombat(player)) {
-                        player.sendSystemMessage(Component.literal("§c✖ Nu poți activa fly-ul cât ești în combat!"));
+                        player.sendSystemMessage(Component.literal("§c✖ You cannot enable fly while in combat!"));
                         return 0;
                     }
 
@@ -60,7 +60,7 @@ public class FlyCommand {
                         // OPREȘTE ZBORUL
                         player.getAbilities().mayfly = false;
                         player.getAbilities().flying = false;
-                        player.sendSystemMessage(Component.literal("§eModul de zbor a fost §cDEZACTIVAT§e!"));
+                        player.sendSystemMessage(Component.literal("§eFly mode has been §cDISABLED§e!"));
 
                         // Trimitem pachetul să închidă interfața custom de pe ecran instantaneu!
                         PacketHandler.sendToPlayer(
@@ -69,11 +69,11 @@ public class FlyCommand {
                     } else {
                         // PORNEȘTE ZBORUL
                         player.getAbilities().mayfly = true;
-                        player.sendSystemMessage(Component.literal("§eModul de zbor a fost §aACTIVAT§e!"));
+                        player.sendSystemMessage(Component.literal("§eFly mode has been §aENABLED§e!"));
 
                         // Îi dăm un mesaj frumos cu timpul rămas la activare și facem update la interfață
                         if (maxSeconds == -1) {
-                            player.sendSystemMessage(Component.literal("§7[!] Ai timp de zbor §aNelimitat§7."));
+                            player.sendSystemMessage(Component.literal("§7[!] You have §aUnlimited§7 fly time."));
 
                             // Trimitem pachetul pe client ca interfața să știe că e nelimitat
                             PacketHandler.sendToPlayer(
@@ -82,7 +82,7 @@ public class FlyCommand {
                         } else {
                             int secondsLeft = maxSeconds - FlyTimeManager.getUsedSeconds(player);
                             int m = secondsLeft / 60;
-                            player.sendSystemMessage(Component.literal("§7[!] Timp rămas azi: §f" + m + " min §7(se consumă doar când ești în aer)."));
+                            player.sendSystemMessage(Component.literal("§7[!] Time left today: §f" + m + " min §7(used only while airborne)."));
 
                             // Trimitem pachetul pe client ca interfața să arate secundele corecte
                             PacketHandler.sendToPlayer(

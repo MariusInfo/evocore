@@ -27,15 +27,15 @@ public class VoteManager {
                 if (server != null && server.getPlayerCount() > 0) {
 
                     // Creăm butonul clickabil pentru chat
-                    Component link = Component.literal("§a§l[CLICK AICI PENTRU A VOTA]")
+                    Component link = Component.literal("§a§l[CLICK HERE TO VOTE]")
                             .withStyle(style -> style
                                     .withClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://evocraft.ro/vote.php"))
-                                    .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal("§eDeschide link-ul de vot!"))));
+                                    .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal("§eOpen the vote link!"))));
 
                     // Trimitem mesajul
                     server.getPlayerList().broadcastSystemMessage(Component.literal("§8§m----------------------------------------"), false);
-                    server.getPlayerList().broadcastSystemMessage(Component.literal("§e⭐ §lVREI SĂ SUSȚII SERVERUL ȘI SĂ FACI BANI? §e⭐"), false);
-                    server.getPlayerList().broadcastSystemMessage(Component.literal("§fVotează-ne zilnic și primești §d1x Cheie Vote§f!"), false);
+                    server.getPlayerList().broadcastSystemMessage(Component.literal("§e⭐ §lWANT TO SUPPORT THE SERVER AND EARN EVO? §e⭐"), false);
+                    server.getPlayerList().broadcastSystemMessage(Component.literal("§fVote daily and receive §d1x Vote Key§f!"), false);
                     server.getPlayerList().broadcastSystemMessage(link, false);
                     server.getPlayerList().broadcastSystemMessage(Component.literal("§8§m----------------------------------------"), false);
                 }

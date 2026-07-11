@@ -40,7 +40,7 @@ public class C2S_HomeActionPacket {
                 } else if (action.equals("tp")) {
                     // Protecție Combat
                     if (CombatLogManager.isInCombat(player)) {
-                        player.sendSystemMessage(Component.literal("§c✖ Nu te poți teleporta Acasă cât ești în combat!"));
+                        player.sendSystemMessage(Component.literal("§c✖ You cannot teleport home while in combat!"));
                         return;
                     }
                     HomeManager.get().teleportHome(player, homeName);

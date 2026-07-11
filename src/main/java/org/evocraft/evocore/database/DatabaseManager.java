@@ -70,20 +70,20 @@ public class DatabaseManager {
             if (connection != null && !connection.isClosed()) return;
 
             if (type.equals("MYSQL")) {
-                System.out.println("[EvoCore] Încercare conexiune MariaDB/MySQL via " + host + "...");
+                System.out.println("[EvoCore] Attempting MariaDB/MySQL connection via " + host + "...");
                 // KeepAlive forțează menținerea conexiunii active
                 String url = "jdbc:mariadb://" + host + ":" + port + "/" + database + "?autoReconnect=true&allowPublicKeyRetrieval=true&tcpKeepAlive=true";
                 Class.forName("org.evocraft.evocore.repackaged.mariadb.Driver");
                 connection = java.sql.DriverManager.getConnection(url, username, password);
-                System.out.println("[EvoCore] CONECTAT LA MARIADB/MYSQL!");
+                System.out.println("[EvoCore] CONNECTED TO MARIADB/MYSQL!");
             } else {
-                System.out.println("[EvoCore] Se conectează la SQLite local...");
+                System.out.println("[EvoCore] Connecting to local SQLite...");
                 File dbFile = FMLPaths.CONFIGDIR.get().resolve("evocore/evodata.db").toFile();
                 connection = java.sql.DriverManager.getConnection("jdbc:sqlite:" + dbFile.getAbsolutePath());
             }
             createTables();
         } catch (Exception e) {
-            System.err.println("[EvoCore] EROARE CRITICĂ LA CONECTAREA BAZĂ DE DATE!");
+            System.err.println("[EvoCore] CRITICAL DATABASE CONNECTION ERROR!");
             e.printStackTrace();
         }
     }
@@ -176,7 +176,7 @@ public class DatabaseManager {
             // Această linie repară problema cu Unknown column 'custom_name' pe serverele vechi
             try { stmt.execute("ALTER TABLE player_claims ADD COLUMN IF NOT EXISTS custom_name VARCHAR(100);"); } catch (SQLException ignore) {}
 
-            System.out.println("[EvoCore] Toate tabelele au fost verificate/create cu succes în MariaDB.");
+            System.out.println("[EvoCore] All tables were checked/created successfully in MariaDB.");
         } catch (SQLException e) {
             e.printStackTrace();
         }

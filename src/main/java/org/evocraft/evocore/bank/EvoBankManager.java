@@ -16,6 +16,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraftforge.fml.loading.FMLPaths;
+import net.minecraftforge.network.NetworkHooks;
 import org.evocraft.evocore.EvoCore;
 import org.evocraft.evocore.data.EconomyManager;
 import org.evocraft.evocore.util.EvoCurrencyFormatter;
@@ -45,7 +46,7 @@ public class EvoBankManager {
     private static final String CASH_TAG = "EvoCash";
     private static final String CASH_QUANTITY_TAG = "EvoCashQuantity";
     private static final int DATA_VERSION = 3;
-    private static final int CURRENT_CARD_ITEM_VERSION = 1;
+    private static final int CURRENT_CARD_ITEM_VERSION = 2;
     private static final int CARD_MODEL_DATA = 730001;
     private static final int CASH_STACK_SIZE = 64;
     private static final int PIN_RESET_COST = 5000;
@@ -208,6 +209,10 @@ public class EvoBankManager {
         return accounts.containsKey(uuid);
     }
 
+    public synchronized BankAccount getAccount(UUID uuid) {
+        return accounts.get(uuid);
+    }
+
     public synchronized void repairPlayerCardsAfterUpdate(ServerPlayer player) {
         if (player == null) return;
 
@@ -226,7 +231,7 @@ public class EvoBankManager {
                 }
 
                 if (needsStableCardMigration(stack)) {
-                    inventory.setItem(i, createBankCard(cardAccount));
+                    inventory.setItem(i, normalizeBankCard(stack));
                     changedInventory = true;
                     stack = inventory.getItem(i);
                 }
@@ -272,20 +277,26 @@ public class EvoBankManager {
         boolean existed = hasAccount(player.getUUID());
         BankAccount account = getOrCreateAccount(player);
 
+        String message = "";
         if (!existed) {
             giveCard(player);
-            player.sendSystemMessage(Component.literal("\u00A7a[EvoBank] Your account was created. You received your first bank card for free."));
-            player.sendSystemMessage(Component.literal("\u00A77Go to an ATM, insert the card and set your PIN."));
-            return;
+            message = "Account created. First card issued for free.";
         }
 
         double balance = getAccountBalance(account);
-        player.sendSystemMessage(Component.literal("\u00A78\u00A7m--------------------------------"));
-        player.sendSystemMessage(Component.literal("\u00A7b\u00A7lEvoBank Services"));
-        player.sendSystemMessage(Component.literal("\u00A77Balance: \u00A7e" + formatMoney(balance)));
-        player.sendSystemMessage(serviceButton("\u00A7a[Reset PIN - " + formatMoney(PIN_RESET_COST) + "]", "/evobank service pin", "Pay " + formatMoney(PIN_RESET_COST) + " and set a new PIN at the ATM."));
-        player.sendSystemMessage(serviceButton("\u00A76[Replace Card - " + formatMoney(CARD_REPLACEMENT_COST) + "]", "/evobank service card", "Pay " + formatMoney(CARD_REPLACEMENT_COST) + " and invalidate your old card."));
-        player.sendSystemMessage(Component.literal("\u00A78\u00A7m--------------------------------"));
+        String ownerName = account.ownerName == null ? player.getGameProfile().getName() : account.ownerName;
+        String finalMessage = message;
+        NetworkHooks.openScreen(player, new net.minecraft.world.SimpleMenuProvider(
+                (containerId, inventory, p) -> new EvoBankerMenu(containerId, inventory, true, !existed, ownerName, balance, finalMessage, true),
+                Component.literal("\u00A76\u00A7lBanker")
+        ), buf -> {
+            buf.writeBoolean(true);
+            buf.writeBoolean(!existed);
+            buf.writeUtf(ownerName, 32);
+            buf.writeDouble(balance);
+            buf.writeUtf(finalMessage, 128);
+            buf.writeBoolean(true);
+        });
     }
 
     private Component serviceButton(String label, String command, String hover) {
@@ -345,6 +356,14 @@ public class EvoBankManager {
         return true;
     }
 
+    public static int getPinResetCost() {
+        return PIN_RESET_COST;
+    }
+
+    public static int getCardReplacementCost() {
+        return CARD_REPLACEMENT_COST;
+    }
+
     public boolean isNearBanker(ServerPlayer player) {
         AABB area = new AABB(player.blockPosition()).inflate(5.0D);
         return !player.level().getEntitiesOfClass(Villager.class, area,
@@ -361,15 +380,22 @@ public class EvoBankManager {
     }
 
     private ItemStack createBankCard(BankAccount account) {
-        ItemStack card = new ItemStack(Items.PAPER);
+        return createBankCard(account, "");
+    }
+
+    private ItemStack createBankCard(BankAccount account, String existingInstanceId) {
+        ItemStack card = new ItemStack(EvoCore.EVOBANK_CARD.get());
         card.setHoverName(Component.literal("\u00A7b\u00A7lEvoBank Card \u00A77- \u00A7f" + account.ownerName));
 
         CompoundTag tag = card.getOrCreateTag();
+        String instanceId = existingInstanceId == null || existingInstanceId.isBlank()
+                ? UUID.randomUUID().toString()
+                : existingInstanceId;
         tag.putBoolean(CARD_TAG, true);
         tag.putString(CARD_OWNER_TAG, account.ownerUuid.toString());
         tag.putString(CARD_OWNER_NAME_TAG, account.ownerName);
         tag.putString(CARD_ID_TAG, account.cardId);
-        tag.putString(CARD_INSTANCE_TAG, UUID.randomUUID().toString());
+        tag.putString(CARD_INSTANCE_TAG, instanceId);
         tag.putInt(CARD_ITEM_VERSION_TAG, CURRENT_CARD_ITEM_VERSION);
         tag.putInt("CustomModelData", CARD_MODEL_DATA);
         return card;
@@ -394,8 +420,11 @@ public class EvoBankManager {
 
     public static boolean isBankCardItem(ItemStack stack) {
         if (stack == null || stack.isEmpty() || !stack.hasTag()) return false;
+        if (!stack.is(EvoCore.EVOBANK_CARD.get()) && !stack.is(Items.PAPER)) return false;
         CompoundTag tag = stack.getTag();
-        return tag != null && tag.getBoolean(CARD_TAG) && !tag.getString(CARD_ID_TAG).isBlank();
+        return tag != null
+                && tag.getBoolean(CARD_TAG)
+                && (!tag.getString(CARD_ID_TAG).isBlank() || !tag.getString(CARD_OWNER_TAG).isBlank());
     }
 
     public synchronized BankAccount getAccountByCard(ItemStack stack) {
@@ -408,8 +437,21 @@ public class EvoBankManager {
         for (BankAccount account : accounts.values()) {
             if (account.cardId != null && account.cardId.equals(cardId)) {
                 if (owner.isBlank() || account.ownerUuid.toString().equals(owner)) {
+                    repairCardTags(stack, account);
                     return account;
                 }
+            }
+        }
+
+        if (!owner.isBlank()) {
+            try {
+                UUID ownerUuid = UUID.fromString(owner);
+                BankAccount account = accounts.get(ownerUuid);
+                if (account != null) {
+                    repairCardTags(stack, account);
+                    return account;
+                }
+            } catch (IllegalArgumentException ignored) {
             }
         }
         return null;
@@ -420,12 +462,49 @@ public class EvoBankManager {
         return stack.getTag().getString(CARD_ID_TAG);
     }
 
+    public synchronized ItemStack normalizeBankCard(ItemStack stack) {
+        BankAccount account = getAccountByCard(stack);
+        if (account == null) return ItemStack.EMPTY;
+
+        CompoundTag tag = stack.getTag();
+        String instanceId = tag == null ? "" : tag.getString(CARD_INSTANCE_TAG);
+        return createBankCard(account, instanceId);
+    }
+
     private boolean needsStableCardMigration(ItemStack stack) {
         if (!isBankCardItem(stack) || stack.getTag() == null) return false;
         CompoundTag tag = stack.getTag();
-        return !stack.is(Items.PAPER)
+        return !stack.is(EvoCore.EVOBANK_CARD.get())
+                || tag.getString(CARD_INSTANCE_TAG).isBlank()
+                || tag.getString(CARD_ID_TAG).isBlank()
                 || tag.getInt("CustomModelData") != CARD_MODEL_DATA
                 || tag.getInt(CARD_ITEM_VERSION_TAG) < CURRENT_CARD_ITEM_VERSION;
+    }
+
+    private void repairCardTags(ItemStack stack, BankAccount account) {
+        if (stack == null || stack.isEmpty() || account == null) return;
+        boolean accountChanged = false;
+        CompoundTag tag = stack.getOrCreateTag();
+        tag.putBoolean(CARD_TAG, true);
+        tag.putString(CARD_OWNER_TAG, account.ownerUuid.toString());
+        tag.putString(CARD_OWNER_NAME_TAG, account.ownerName == null ? "" : account.ownerName);
+        if (account.cardId == null || account.cardId.isBlank()) {
+            account.cardId = UUID.randomUUID().toString();
+            accountChanged = true;
+        }
+        if (account.cardItemVersion < CURRENT_CARD_ITEM_VERSION) {
+            account.cardItemVersion = CURRENT_CARD_ITEM_VERSION;
+            accountChanged = true;
+        }
+        tag.putString(CARD_ID_TAG, account.cardId);
+        if (tag.getString(CARD_INSTANCE_TAG).isBlank()) {
+            tag.putString(CARD_INSTANCE_TAG, UUID.randomUUID().toString());
+        }
+        tag.putInt(CARD_ITEM_VERSION_TAG, CURRENT_CARD_ITEM_VERSION);
+        tag.putInt("CustomModelData", CARD_MODEL_DATA);
+        if (accountChanged) {
+            save();
+        }
     }
 
     public boolean hasPin(BankAccount account) {

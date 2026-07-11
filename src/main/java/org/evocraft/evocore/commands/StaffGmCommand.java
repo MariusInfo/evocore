@@ -18,10 +18,10 @@ public class StaffGmCommand {
                     // Dacă jucătorul este în Spectator, îl dăm în Survival. Altfel, îl dăm în Spectator.
                     if (player.gameMode.getGameModeForPlayer() == GameType.SPECTATOR) {
                         player.setGameMode(GameType.SURVIVAL);
-                        player.sendSystemMessage(Component.literal("§8[§cStaff§8] §fModul tău de joc a fost schimbat în §aSURVIVAL§f."));
+                        player.sendSystemMessage(Component.literal("§8[§cStaff§8] §fYour game mode was changed to §aSURVIVAL§f."));
                     } else {
                         player.setGameMode(GameType.SPECTATOR);
-                        player.sendSystemMessage(Component.literal("§8[§cStaff§8] §fModul tău de joc a fost schimbat în §7SPECTATOR§f."));
+                        player.sendSystemMessage(Component.literal("§8[§cStaff§8] §fYour game mode was changed to §7SPECTATOR§f."));
                     }
 
                     return 1;

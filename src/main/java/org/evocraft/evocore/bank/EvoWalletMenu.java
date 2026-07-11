@@ -19,13 +19,15 @@ public class EvoWalletMenu extends AbstractContainerMenu {
     public static final int WALLET_SLOT_COUNT = 10;
     public static final int CARD_SLOT = 0;
     public static final int CASH_SLOT_START = 1;
-    public static final int CARD_SLOT_X = 52;
-    public static final int CARD_SLOT_Y = 54;
-    public static final int CASH_GRID_X = 124;
-    public static final int CASH_GRID_Y = 38;
-    public static final int INVENTORY_X = 95;
-    public static final int INVENTORY_Y = 154;
-    public static final int HOTBAR_Y = 212;
+    public static final int CARD_SLOT_X = 62;
+    public static final int CARD_SLOT_Y = 93;
+    public static final int CASH_GRID_X = 191;
+    public static final int CASH_GRID_Y = 62;
+    public static final int CASH_GRID_COL_SPACING = 56;
+    public static final int CASH_GRID_ROW_SPACING = 46;
+    public static final int INVENTORY_X = 111;
+    public static final int INVENTORY_Y = 234;
+    public static final int HOTBAR_Y = 292;
 
     private final Inventory playerInventory;
     private final Container walletContainer;
@@ -44,7 +46,9 @@ public class EvoWalletMenu extends AbstractContainerMenu {
         for (int i = 0; i < EvoWalletManager.DENOMINATIONS.length; i++) {
             int col = i % 3;
             int row = i / 3;
-            addSlot(new ReadOnlyWalletSlot(walletContainer, CASH_SLOT_START + i, CASH_GRID_X + col * 42, CASH_GRID_Y + row * 31));
+            addSlot(new ReadOnlyWalletSlot(walletContainer, CASH_SLOT_START + i,
+                    CASH_GRID_X + col * CASH_GRID_COL_SPACING,
+                    CASH_GRID_Y + row * CASH_GRID_ROW_SPACING));
         }
 
         for (int row = 0; row < 3; row++) {
@@ -230,16 +234,9 @@ public class EvoWalletMenu extends AbstractContainerMenu {
             return 0;
         }
 
-        int current = EvoWalletManager.get().getCashCount(player.getUUID(), denomination);
-        int space = EvoWalletManager.CASH_SLOT_LIMIT - current;
-        if (space <= 0) {
-            sendUpdate(player, "This wallet slot is full.", false);
-            return 0;
-        }
-
-        int accepted = EvoWalletManager.get().addCash(player.getUUID(), denomination, Math.min(stack.getCount(), space));
+        int accepted = EvoWalletManager.get().addCash(player.getUUID(), denomination, stack.getCount());
         if (accepted <= 0) {
-            sendUpdate(player, "This wallet slot is full.", false);
+            sendUpdate(player, "This wallet stack is too large.", false);
             return 0;
         }
 
@@ -269,8 +266,8 @@ public class EvoWalletMenu extends AbstractContainerMenu {
 
     private void withdrawCashToInventory(ServerPlayer player, int denomination, int requestedCount) {
         UUID owner = player.getUUID();
-        int available = EvoWalletManager.get().getCashCount(owner, denomination);
-        int count = Math.min(Math.max(1, requestedCount), available);
+        long available = EvoWalletManager.get().getCashCount(owner, denomination);
+        int count = (int) Math.min((long) Math.max(1, requestedCount), available);
         if (count <= 0) {
             sendUpdate(player, "No " + EvoBankManager.formatAmount(denomination) + " Evo notes in wallet.", false);
             return;
@@ -300,7 +297,7 @@ public class EvoWalletMenu extends AbstractContainerMenu {
         walletContainer.setItem(CARD_SLOT, EvoWalletManager.get().getCard(owner));
         for (int i = 0; i < EvoWalletManager.DENOMINATIONS.length; i++) {
             int denomination = EvoWalletManager.DENOMINATIONS[i];
-            int count = EvoWalletManager.get().getCashCount(owner, denomination);
+            long count = EvoWalletManager.get().getCashCount(owner, denomination);
             walletContainer.setItem(CASH_SLOT_START + i, EvoWalletManager.get().createDisplayCashStack(denomination, count));
         }
         broadcastChanges();

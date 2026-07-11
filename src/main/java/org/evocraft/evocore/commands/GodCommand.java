@@ -29,10 +29,10 @@ public class GodCommand {
 
                     if (godPlayers.contains(uuid)) {
                         godPlayers.remove(uuid);
-                        player.sendSystemMessage(Component.literal("§c✖ Modul GOD a fost DEZACTIVAT. Acum poți lua damage."));
+                        player.sendSystemMessage(Component.literal("§c✖ GOD mode has been DISABLED. You can now take damage."));
                     } else {
                         godPlayers.add(uuid);
-                        player.sendSystemMessage(Component.literal("§a✔ Modul GOD a fost ACTIVAT. Ești invincibil!"));
+                        player.sendSystemMessage(Component.literal("§a✔ GOD mode has been ENABLED. You are invincible!"));
 
                         // Îi stingem focul și îi dăm viața full la activare!
                         player.clearFire();

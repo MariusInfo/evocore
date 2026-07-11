@@ -89,6 +89,7 @@ public class EvoBankAtmMenu extends AbstractContainerMenu {
     public void slotsChanged(Container container) {
         super.slotsChanged(container);
         if (container == bankContainer) {
+            normalizeInsertedCard();
             validateAuthentication();
             syncState("", true);
         }
@@ -337,6 +338,16 @@ public class EvoBankAtmMenu extends AbstractContainerMenu {
 
     private EvoBankManager.BankAccount getCardAccount() {
         return EvoBankManager.get().getAccountByCard(bankContainer.getItem(CARD_SLOT));
+    }
+
+    private void normalizeInsertedCard() {
+        ItemStack card = bankContainer.getItem(CARD_SLOT);
+        if (card.isEmpty() || !EvoBankManager.isBankCardItem(card)) return;
+
+        ItemStack normalized = EvoBankManager.get().normalizeBankCard(card);
+        if (!normalized.isEmpty() && !ItemStack.isSameItemSameTags(card, normalized)) {
+            bankContainer.setItem(CARD_SLOT, normalized);
+        }
     }
 
     private EvoBankManager.BankAccount getAuthenticatedAccount() {

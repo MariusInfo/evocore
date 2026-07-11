@@ -45,9 +45,9 @@ public class TpaManager {
 
         // Comanda /tpa <jucator> - Reintrodusă pentru utilizare directă din chat
         dispatcher.register(Commands.literal("tpa")
-                .then(Commands.argument("jucator", EntityArgument.player())
+                .then(Commands.argument("player", EntityArgument.player())
                         .executes(context -> {
-                            ServerPlayer target = EntityArgument.getPlayer(context, "jucator");
+                            ServerPlayer target = EntityArgument.getPlayer(context, "player");
                             sendTpaRequest(context.getSource().getPlayerOrException(), target.getName().getString(), false);
                             return 1;
                         })
@@ -56,9 +56,9 @@ public class TpaManager {
 
         // Comanda /tpahere <jucator> - Reintrodusă pentru utilizare directă din chat
         dispatcher.register(Commands.literal("tpahere")
-                .then(Commands.argument("jucator", EntityArgument.player())
+                .then(Commands.argument("player", EntityArgument.player())
                         .executes(context -> {
-                            ServerPlayer target = EntityArgument.getPlayer(context, "jucator");
+                            ServerPlayer target = EntityArgument.getPlayer(context, "player");
                             sendTpaRequest(context.getSource().getPlayerOrException(), target.getName().getString(), true);
                             return 1;
                         })
@@ -69,12 +69,12 @@ public class TpaManager {
     public static void sendTpaRequest(ServerPlayer sender, String targetName, boolean isTpaHere) {
         ServerPlayer target = sender.serverLevel().getServer().getPlayerList().getPlayerByName(targetName);
         if (target == null) {
-            sender.sendSystemMessage(Component.literal("§c[!] Jucătorul nu este online!"));
+            sender.sendSystemMessage(Component.literal("§c[!] That player is not online!"));
             return;
         }
 
         if (sender.getUUID().equals(target.getUUID())) {
-            sender.sendSystemMessage(Component.literal("§c[!] Nu îți poți trimite cereri singur!"));
+            sender.sendSystemMessage(Component.literal("§c[!] You cannot send a request to yourself!"));
             return;
         }
 
@@ -82,27 +82,27 @@ public class TpaManager {
         PlayerStatsManager.PlayerStats stats = PlayerStatsManager.get().getStats(target.getUUID());
         if (stats != null) {
             if (!stats.allowTPA) {
-                sender.sendSystemMessage(Component.literal("§c[!] Acest jucător are cererile de teleportare dezactivate."));
+                sender.sendSystemMessage(Component.literal("§c[!] This player has teleport requests disabled."));
                 return;
             }
             if (stats.blockedPlayers.contains(sender.getUUID().toString())) {
-                sender.sendSystemMessage(Component.literal("§c[!] Acest jucător te-a blocat. Nu îi poți trimite cereri."));
+                sender.sendSystemMessage(Component.literal("§c[!] This player has blocked you. You cannot send them requests."));
                 return;
             }
         }
 
         if (activeRequests.containsKey(target.getUUID())) {
-            sender.sendSystemMessage(Component.literal("§c[!] Acest jucător are deja o cerere în așteptare. Așteaptă!"));
+            sender.sendSystemMessage(Component.literal("§c[!] This player already has a pending request. Please wait!"));
             return;
         }
 
         activeRequests.put(target.getUUID(), new TpaRequest(sender, isTpaHere));
 
         String type = isTpaHere ? "§eTPA Here" : "§eTPA";
-        sender.sendSystemMessage(Component.literal("§a[✔] Ai trimis o cerere de " + type + " §acătre §e" + target.getName().getString() + "§a."));
+        sender.sendSystemMessage(Component.literal("§a[✔] Sent a " + type + " §arequest to §e" + target.getName().getString() + "§a."));
 
-        target.sendSystemMessage(Component.literal("§e[!] §6" + sender.getName().getString() + " §adorește să " + (isTpaHere ? "te teleportezi la el" : "se teleporteze la tine") + "."));
-        target.sendSystemMessage(Component.literal("§aFolosește §e/tpaccept §asau §c/tpdeny§a."));
+        target.sendSystemMessage(Component.literal("§e[!] §6" + sender.getName().getString() + " §awants " + (isTpaHere ? "you to teleport to them" : "to teleport to you") + "."));
+        target.sendSystemMessage(Component.literal("§aUse §e/tpaccept §aor §c/tpdeny§a."));
 
         // Mesajul ascuns pentru notificarea Slide-In de pe ecran
         String hiddenMsg = "§0~EVOTPA~" + sender.getUUID().toString() + ":" + sender.getName().getString() + ":" + (isTpaHere ? "TPA_HERE" : "TPA");
@@ -115,29 +115,29 @@ public class TpaManager {
         UUID targetId = target.getUUID();
 
         if (!activeRequests.containsKey(targetId)) {
-            target.sendSystemMessage(Component.literal("§c[!] Nu ai nicio cerere de teleportare în așteptare."));
+            target.sendSystemMessage(Component.literal("§c[!] You do not have any pending teleport requests."));
             return 0;
         }
 
         TpaRequest req = activeRequests.remove(targetId);
 
         if (req.sender.hasDisconnected()) {
-            target.sendSystemMessage(Component.literal("§c[!] Jucătorul care a trimis cererea nu mai este online."));
+            target.sendSystemMessage(Component.literal("§c[!] The player who sent the request is no longer online."));
             return 0;
         }
 
-        target.sendSystemMessage(Component.literal("§a[✔] Ai acceptat cererea de teleportare de la §e" + req.sender.getName().getString() + "§a."));
+        target.sendSystemMessage(Component.literal("§a[✔] Accepted the teleport request from §e" + req.sender.getName().getString() + "§a."));
         req.sender.sendSystemMessage(Component.literal("§a[✔] §e" + target.getName().getString() + " §aa acceptat cererea!"));
 
         if (req.isTpaHere) {
             TeleportManager.queueTeleport(target, req.sender.getName().getString(), () -> {
                 target.teleportTo(req.sender.serverLevel(), req.sender.getX(), req.sender.getY(), req.sender.getZ(), req.sender.getYRot(), req.sender.getXRot());
-                target.sendSystemMessage(Component.literal("§aTe-ai teleportat la " + req.sender.getName().getString() + "!"));
+                target.sendSystemMessage(Component.literal("§aTeleported to " + req.sender.getName().getString() + "!"));
             });
         } else {
             TeleportManager.queueTeleport(req.sender, target.getName().getString(), () -> {
                 req.sender.teleportTo(target.serverLevel(), target.getX(), target.getY(), target.getZ(), target.getYRot(), target.getXRot());
-                req.sender.sendSystemMessage(Component.literal("§aTe-ai teleportat la " + target.getName().getString() + "!"));
+                req.sender.sendSystemMessage(Component.literal("§aTeleported to " + target.getName().getString() + "!"));
             });
         }
         return 1;
@@ -149,12 +149,12 @@ public class TpaManager {
         UUID targetId = target.getUUID();
 
         if (!activeRequests.containsKey(targetId)) {
-            target.sendSystemMessage(Component.literal("§c[!] Nu ai nicio cerere în așteptare."));
+            target.sendSystemMessage(Component.literal("§c[!] You do not have any pending requests."));
             return 0;
         }
 
         TpaRequest req = activeRequests.remove(targetId);
-        target.sendSystemMessage(Component.literal("§c[!] Ai respins cererea de teleportare de la §e" + req.sender.getName().getString() + "§c."));
+        target.sendSystemMessage(Component.literal("§c[!] Denied the teleport request from §e" + req.sender.getName().getString() + "§c."));
 
         if (!req.sender.hasDisconnected()) {
             req.sender.sendSystemMessage(Component.literal("§c[!] §e" + target.getName().getString() + " §ca respins cererea ta."));
@@ -172,8 +172,8 @@ public class TpaManager {
                 Map.Entry<UUID, TpaRequest> entry = it.next();
                 if (now > entry.getValue().expireTime) {
                     ServerPlayer target = entry.getValue().sender.serverLevel().getServer().getPlayerList().getPlayer(entry.getKey());
-                    if (target != null) target.sendSystemMessage(Component.literal("§c[!] Cererea de teleportare de la §e" + entry.getValue().sender.getName().getString() + " §ca expirat."));
-                    if (!entry.getValue().sender.hasDisconnected()) entry.getValue().sender.sendSystemMessage(Component.literal("§c[!] Cererea ta a expirat."));
+                    if (target != null) target.sendSystemMessage(Component.literal("§c[!] The teleport request from §e" + entry.getValue().sender.getName().getString() + " §chas expired."));
+                    if (!entry.getValue().sender.hasDisconnected()) entry.getValue().sender.sendSystemMessage(Component.literal("§c[!] Your request has expired."));
                     it.remove();
                 }
             }

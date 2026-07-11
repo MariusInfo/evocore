@@ -28,11 +28,13 @@ import net.minecraftforge.registries.RegistryObject;
 import org.evocraft.evocore.commands.*;
 import org.evocraft.evocore.bank.EvoBankCommands;
 import org.evocraft.evocore.bank.EvoBankAtmMenu;
+import org.evocraft.evocore.bank.EvoBankerMenu;
 import org.evocraft.evocore.bank.EvoBankManager;
 import org.evocraft.evocore.bank.EvoWalletCommands;
 import org.evocraft.evocore.bank.EvoWalletManager;
 import org.evocraft.evocore.bank.EvoWalletMenu;
 import org.evocraft.evocore.client.EvoBankAtmScreen;
+import org.evocraft.evocore.client.EvoBankerScreen;
 import org.evocraft.evocore.client.EvoWalletScreen;
 import org.evocraft.evocore.vote.EvoVotifier;
 import org.evocraft.evocore.data.*;
@@ -62,6 +64,8 @@ public class EvoCore {
             () -> IForgeMenuType.create((containerId, inventory, data) -> new EvoBankAtmMenu(containerId, inventory)));
     public static final RegistryObject<MenuType<EvoWalletMenu>> EVO_WALLET_MENU = MENUS.register("evowallet",
             () -> IForgeMenuType.create((containerId, inventory, data) -> new EvoWalletMenu(containerId, inventory)));
+    public static final RegistryObject<MenuType<EvoBankerMenu>> EVO_BANKER_MENU = MENUS.register("evobank_banker",
+            () -> IForgeMenuType.create(EvoBankerMenu::new));
     public static final RegistryObject<Item> EVOBANK_CARD = ITEMS.register("evobank_card",
             () -> new Item(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> EVOCASH_1 = ITEMS.register("evocash_1",
@@ -121,6 +125,7 @@ public class EvoCore {
         public static void onClientSetup(FMLClientSetupEvent event) {
             event.enqueueWork(() -> {
                 MenuScreens.register(EvoCore.EVO_BANK_ATM_MENU.get(), EvoBankAtmScreen::new);
+                MenuScreens.register(EvoCore.EVO_BANKER_MENU.get(), EvoBankerScreen::new);
                 MenuScreens.register(EvoCore.EVO_WALLET_MENU.get(), EvoWalletScreen::new);
             });
         }
@@ -140,6 +145,7 @@ public class EvoCore {
         StaffGmCommand.register(event.getDispatcher());
         StaffTpCommand.register(event.getDispatcher());
         WarnCommands.register(event.getDispatcher());
+        EventLogCommands.register(event.getDispatcher());
         org.evocraft.evocore.vote.VoteCommands.register(event.getDispatcher());
         EvoBankCommands.register(event.getDispatcher());
         EvoWalletCommands.register(event.getDispatcher());
@@ -155,6 +161,7 @@ public class EvoCore {
         DatabaseManager.initialize();
         ChatManager.initializeDB();
         WarnManager.initializeDB();
+        EventLogManager.initialize();
         EconomyManager.initialize();
         WarpManager.get();
         PlayerStatsManager.initialize();
@@ -173,6 +180,7 @@ public class EvoCore {
         EvoBankManager.get().save();
         EvoWalletManager.get().save();
         WarpManager.get().save();
+        EventLogManager.shutdown();
     }
 
     @SubscribeEvent
@@ -207,7 +215,7 @@ public class EvoCore {
                             EvoBankManager.get().repairPlayerCardsAfterUpdate(player);
                         }
                     } catch (Exception e) {
-                        System.err.println("[EvoCore] EROARE PRINSĂ LA LOGIN (Homes/Economy/Stats): Serverul a fost salvat!");
+                        System.err.println("[EvoCore] LOGIN ERROR CAUGHT (Homes/Economy/Stats): Server was protected from a crash!");
                         e.printStackTrace();
                     }
                 }));

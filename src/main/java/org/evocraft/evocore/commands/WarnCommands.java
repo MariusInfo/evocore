@@ -21,22 +21,22 @@ public class WarnCommands {
         // ==========================================
         dispatcher.register(Commands.literal("warn")
                 .requires(source -> hasLuckPermission(source, "evocore.warn"))
-                .then(Commands.argument("jucator", EntityArgument.player())
-                        .then(Commands.argument("motiv", StringArgumentType.greedyString())
+                .then(Commands.argument("player", EntityArgument.player())
+                        .then(Commands.argument("reason", StringArgumentType.greedyString())
                                 .executes(context -> {
-                                    ServerPlayer target = EntityArgument.getPlayer(context, "jucator");
-                                    String reason = StringArgumentType.getString(context, "motiv");
+                                    ServerPlayer target = EntityArgument.getPlayer(context, "player");
+                                    String reason = StringArgumentType.getString(context, "reason");
                                     String admin = context.getSource().getTextName();
 
                                     WarnManager.addWarn(target.getUUID(), reason, admin);
 
                                     target.sendSystemMessage(Component.literal("§8§m--------------------------------"));
-                                    target.sendSystemMessage(Component.literal("§c§lAI PRIMIT UN AVERTISMENT!"));
-                                    target.sendSystemMessage(Component.literal("§7Motiv: §f" + reason));
+                                    target.sendSystemMessage(Component.literal("§c§lYOU HAVE RECEIVED A WARNING!"));
+                                    target.sendSystemMessage(Component.literal("§7Reason: §f" + reason));
                                     target.sendSystemMessage(Component.literal("§7Admin: §e" + admin));
                                     target.sendSystemMessage(Component.literal("§8§m--------------------------------"));
 
-                                    context.getSource().sendSuccess(() -> Component.literal("§aI-ai dat warn lui " + target.getName().getString()), true);
+                                    context.getSource().sendSuccess(() -> Component.literal("§aWarned " + target.getName().getString()), true);
                                     return 1;
                                 })
                         ))
@@ -47,14 +47,14 @@ public class WarnCommands {
         // ==========================================
         dispatcher.register(Commands.literal("warns")
                 .requires(source -> hasLuckPermission(source, "evocore.warn.view"))
-                .then(Commands.argument("jucator", EntityArgument.player())
+                .then(Commands.argument("player", EntityArgument.player())
                         .executes(context -> {
-                            ServerPlayer target = EntityArgument.getPlayer(context, "jucator");
+                            ServerPlayer target = EntityArgument.getPlayer(context, "player");
 
                             // Executăm asincron pentru a nu bloca serverul la citirea din DB
                             new Thread(() -> {
                                 List<WarnManager.WarnEntry> warns = WarnManager.getWarns(target.getUUID());
-                                context.getSource().sendSuccess(() -> Component.literal("§e§lWarn-uri pentru " + target.getName().getString() + " (§c" + warns.size() + "§e):"), false);
+                                context.getSource().sendSuccess(() -> Component.literal("§e§lWarnings for " + target.getName().getString() + " (§c" + warns.size() + "§e):"), false);
 
                                 for (WarnManager.WarnEntry w : warns) {
                                     context.getSource().sendSuccess(() -> Component.literal("§6#" + w.id() + " §8| §f" + w.reason() + " §8| §7Admin: §e" + w.admin() + " §8| §b" + w.date().substring(0, 10)), false);
@@ -75,7 +75,7 @@ public class WarnCommands {
                         .executes(context -> {
                             int id = IntegerArgumentType.getInteger(context, "id");
                             WarnManager.removeWarn(id, () -> {
-                                context.getSource().sendSuccess(() -> Component.literal("§a✔ Warn-ul #" + id + " a fost șters cu succes!"), true);
+                                context.getSource().sendSuccess(() -> Component.literal("§a✔ Warning #" + id + " was removed successfully!"), true);
                             });
                             return 1;
                         })

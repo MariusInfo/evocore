@@ -69,7 +69,7 @@ public class WarpManager {
                 w.pitch = wTag.getFloat("Pitch");
                 warps.put(w.name.toLowerCase(), w);
             }
-            System.out.println("[EvoCore] Am încărcat " + warps.size() + " warp-uri din config.");
+            System.out.println("[EvoCore] Loaded " + warps.size() + " warp(s) from config.");
         } catch (Exception e) { e.printStackTrace(); }
     }
 

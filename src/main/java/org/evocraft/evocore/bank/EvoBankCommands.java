@@ -70,7 +70,7 @@ public class EvoBankCommands {
                                     banker.setPersistenceRequired();
                                     banker.setSilent(true);
                                     banker.addTag(EvoBankManager.BANKER_TAG);
-                                    banker.setCustomName(Component.literal("\u00A76\u00A7lEvoBank Banker"));
+                                    banker.setCustomName(Component.literal("\u00A76\u00A7lBanker"));
                                     banker.setCustomNameVisible(true);
 
                                     player.level().addFreshEntity(banker);

@@ -26,12 +26,24 @@ public class ClientPacketHandler {
         }
     }
 
-    public static void handleEvoWalletState(int[] cashCounts, boolean hasCard, String message, boolean positive) {
+    public static void handleEvoWalletState(long[] cashCounts, boolean hasCard, String message, boolean positive) {
         ClientWalletData.update(cashCounts, hasCard, message, positive);
     }
 
+    public static void handleEvoBankerState(boolean hasAccount, String ownerName, double balance, String message, boolean positive) {
+        if (net.minecraft.client.Minecraft.getInstance().screen instanceof org.evocraft.evocore.client.EvoBankerScreen screen) {
+            screen.applyBankerState(hasAccount, ownerName, balance, message, positive);
+        }
+    }
+
     public static void handlePlayerJoinLeave(String name, UUID uuid, boolean isJoin) {
-        // Mutat in Hub
+        try {
+            Class<?> handler = Class.forName("org.evocraft.evohub.client.JoinLeaveNotificationHandler");
+            handler.getMethod("addNotification", String.class, UUID.class, boolean.class)
+                    .invoke(null, name, uuid, isJoin);
+        } catch (ReflectiveOperationException | LinkageError ignored) {
+            // EvoHub owns the visual notification. Keep EvoCore usable without it.
+        }
     }
 
     public static void handleSyncCombat(boolean inCombat, long remainingMs) {
