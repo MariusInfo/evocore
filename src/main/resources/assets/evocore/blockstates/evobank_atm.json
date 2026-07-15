@@ -1,0 +1,31 @@
+{
+  "variants": {
+    "facing=north,half=lower": {
+      "model": "evocore:block/evobank_atm"
+    },
+    "facing=east,half=lower": {
+      "model": "evocore:block/evobank_atm",
+      "y": 90
+    },
+    "facing=south,half=lower": {
+      "model": "evocore:block/evobank_atm",
+      "y": 180
+    },
+    "facing=west,half=lower": {
+      "model": "evocore:block/evobank_atm",
+      "y": 270
+    },
+    "facing=north,half=upper": {
+      "model": "evocore:block/evobank_atm_empty"
+    },
+    "facing=east,half=upper": {
+      "model": "evocore:block/evobank_atm_empty"
+    },
+    "facing=south,half=upper": {
+      "model": "evocore:block/evobank_atm_empty"
+    },
+    "facing=west,half=upper": {
+      "model": "evocore:block/evobank_atm_empty"
+    }
+  }
+}
