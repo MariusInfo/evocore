@@ -35,11 +35,17 @@ minecraft {
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'debug'
             mods {
-                "${mod_id}" {
-                    source sourceSets.main
-                }
+                "${mod_id}" { source sourceSets.main }
+                "evoessentials" { source project(':evoessentials').sourceSets.main }
+                "evocombat" { source project(':evocombat').sourceSets.main }
+                "evovote" { source project(':evovote').sourceSets.main }
+                "evonpc" { source project(':evonpc').sourceSets.main }
+                "evochat" { source project(':evochat').sourceSets.main }
+                "evokits" { source project(':evokits').sourceSets.main }
             }
+        
         }
+        client {}
         server {
             args '--nogui'
         }
@@ -54,6 +60,12 @@ repositories {
 }
 
 dependencies {
+    runtimeOnly project(':evoessentials')
+    runtimeOnly project(':evocombat')
+    runtimeOnly project(':evovote')
+    runtimeOnly project(':evonpc')
+    runtimeOnly project(':evochat')
+    runtimeOnly project(':evokits')
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
     compileOnly 'net.luckperms:api:5.4'
 

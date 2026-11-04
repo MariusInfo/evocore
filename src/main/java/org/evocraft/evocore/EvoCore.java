@@ -2,119 +2,26 @@ package org.evocraft.evocore;
 
 import net.minecraft.server.level.ServerPlayer;
 import java.util.UUID;
-import net.minecraft.client.gui.screens.MenuScreens;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.MobCategory;
-import net.minecraft.world.inventory.MenuType;
-import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.SoundType;
-import net.minecraft.world.level.block.state.BlockBehaviour;
-import net.minecraft.world.level.material.MapColor;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.EntityRenderersEvent;
-import net.minecraftforge.common.extensions.IForgeMenuType;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.event.server.ServerStoppingEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegistryObject;
 
-import org.evocraft.evocore.commands.*;
-import org.evocraft.evocore.bank.EvoBankAtmBlock;
-import org.evocraft.evocore.bank.EvoBankCommands;
-import org.evocraft.evocore.bank.EvoBankAtmMenu;
-import org.evocraft.evocore.bank.EvoBankerMenu;
-import org.evocraft.evocore.bank.EvoBankManager;
-import org.evocraft.evocore.bank.EvoWalletCommands;
-import org.evocraft.evocore.bank.EvoWalletManager;
-import org.evocraft.evocore.bank.EvoWalletMenu;
-import org.evocraft.evocore.client.EvoBankAtmScreen;
-import org.evocraft.evocore.client.EvoBankerScreen;
-import org.evocraft.evocore.client.EvoWalletScreen;
-import org.evocraft.evocore.vote.EvoVotifier;
 import org.evocraft.evocore.data.*;
 import org.evocraft.evocore.network.PacketHandler;
 import org.evocraft.evocore.database.DatabaseManager;
-import org.evocraft.evocore.teleport.HomeManager;
-import org.evocraft.evocore.teleport.RTPCommand;
-import org.evocraft.evocore.chat.ChatManager;
-import org.evocraft.evocore.chat.ChatCommands;
-import org.evocraft.evocore.npc.TopNPC;
-import org.evocraft.evocore.npc.TopNPCRenderer;
 
 @Mod(EvoCore.MODID)
 public class EvoCore {
-
     public static final String MODID = "evocore";
-    private static final int EVOCASH_ITEM_STACK_SIZE = 64;
-
-    // --- REGISTRUL PENTRU NPC ---
-    public static final DeferredRegister<EntityType<?>> ENTITIES = DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, MODID);
-    public static final DeferredRegister<MenuType<?>> MENUS = DeferredRegister.create(ForgeRegistries.MENU_TYPES, MODID);
-    public static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(ForgeRegistries.BLOCKS, MODID);
-    public static final DeferredRegister<Item> ITEMS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
-
-    public static final RegistryObject<EntityType<TopNPC>> TOP_NPC = ENTITIES.register("top_npc",
-            () -> EntityType.Builder.of(TopNPC::new, MobCategory.MISC).sized(0.6f, 1.8f).build("top_npc"));
-    public static final RegistryObject<MenuType<EvoBankAtmMenu>> EVO_BANK_ATM_MENU = MENUS.register("evobank_atm",
-            () -> IForgeMenuType.create((containerId, inventory, data) -> new EvoBankAtmMenu(containerId, inventory)));
-    public static final RegistryObject<MenuType<EvoWalletMenu>> EVO_WALLET_MENU = MENUS.register("evowallet",
-            () -> IForgeMenuType.create((containerId, inventory, data) -> new EvoWalletMenu(containerId, inventory)));
-    public static final RegistryObject<MenuType<EvoBankerMenu>> EVO_BANKER_MENU = MENUS.register("evobank_banker",
-            () -> IForgeMenuType.create(EvoBankerMenu::new));
-    public static final RegistryObject<EvoBankAtmBlock> EVOBANK_ATM = BLOCKS.register("evobank_atm",
-            () -> new EvoBankAtmBlock(BlockBehaviour.Properties.of()
-                    .mapColor(MapColor.METAL)
-                    .strength(3.5F, 9.0F)
-                    .sound(SoundType.METAL)
-                    .requiresCorrectToolForDrops()
-                    .noOcclusion()
-                    .isSuffocating((state, getter, pos) -> false)
-                    .isViewBlocking((state, getter, pos) -> false)));
-    public static final RegistryObject<Item> EVOBANK_ATM_ITEM = ITEMS.register("evobank_atm",
-            () -> new BlockItem(EVOBANK_ATM.get(), new Item.Properties()));
-    public static final RegistryObject<Item> EVOBANK_CARD = ITEMS.register("evobank_card",
-            () -> new Item(new Item.Properties().stacksTo(1)));
-    public static final RegistryObject<Item> EVOCASH_1 = ITEMS.register("evocash_1",
-            () -> new Item(new Item.Properties().stacksTo(EVOCASH_ITEM_STACK_SIZE)));
-    public static final RegistryObject<Item> EVOCASH_5 = ITEMS.register("evocash_5",
-            () -> new Item(new Item.Properties().stacksTo(EVOCASH_ITEM_STACK_SIZE)));
-    public static final RegistryObject<Item> EVOCASH_10 = ITEMS.register("evocash_10",
-            () -> new Item(new Item.Properties().stacksTo(EVOCASH_ITEM_STACK_SIZE)));
-    public static final RegistryObject<Item> EVOCASH_50 = ITEMS.register("evocash_50",
-            () -> new Item(new Item.Properties().stacksTo(EVOCASH_ITEM_STACK_SIZE)));
-    public static final RegistryObject<Item> EVOCASH_100 = ITEMS.register("evocash_100",
-            () -> new Item(new Item.Properties().stacksTo(EVOCASH_ITEM_STACK_SIZE)));
-    public static final RegistryObject<Item> EVOCASH_500 = ITEMS.register("evocash_500",
-            () -> new Item(new Item.Properties().stacksTo(EVOCASH_ITEM_STACK_SIZE)));
-    public static final RegistryObject<Item> EVOCASH_1000 = ITEMS.register("evocash_1000",
-            () -> new Item(new Item.Properties().stacksTo(EVOCASH_ITEM_STACK_SIZE)));
-    public static final RegistryObject<Item> EVOCASH_5000 = ITEMS.register("evocash_5000",
-            () -> new Item(new Item.Properties().stacksTo(EVOCASH_ITEM_STACK_SIZE)));
-    public static final RegistryObject<Item> EVOCASH_10000 = ITEMS.register("evocash_10000",
-            () -> new Item(new Item.Properties().stacksTo(EVOCASH_ITEM_STACK_SIZE)));
 
     public EvoCore() {
-        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
-
-        // Înregistrăm entitățile în sistemul Forge
-        ENTITIES.register(modEventBus);
-        MENUS.register(modEventBus);
-        BLOCKS.register(modEventBus);
-        ITEMS.register(modEventBus);
-
-        modEventBus.addListener((FMLCommonSetupEvent event) -> setup(event));
+        var bus = FMLJavaModLoadingContext.get().getModEventBus();
+        bus.addListener(this::setup);
         MinecraftForge.EVENT_BUS.register(this);
     }
 
@@ -122,90 +29,30 @@ public class EvoCore {
         event.enqueueWork(PacketHandler::register);
     }
 
-    @Mod.EventBusSubscriber(modid = EvoCore.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
-    public static class ModEventBusEvents {
-        @SubscribeEvent
-        public static void onAttributeCreate(EntityAttributeCreationEvent event) {
-            // Asignăm viața și atributele NPC-ului
-            event.put(TOP_NPC.get(), TopNPC.createAttributes().build());
-        }
-
-    }
-
-    @Mod.EventBusSubscriber(modid = EvoCore.MODID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
-    public static class ClientModEvents {
-        @SubscribeEvent
-        public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
-            // Asignăm cum va arăta NPC-ul (Model + Skin + Hologramă)
-            event.registerEntityRenderer(EvoCore.TOP_NPC.get(), TopNPCRenderer::new);
-        }
-
-        @SubscribeEvent
-        public static void onClientSetup(FMLClientSetupEvent event) {
-            event.enqueueWork(() -> {
-                MenuScreens.register(EvoCore.EVO_BANK_ATM_MENU.get(), EvoBankAtmScreen::new);
-                MenuScreens.register(EvoCore.EVO_BANKER_MENU.get(), EvoBankerScreen::new);
-                MenuScreens.register(EvoCore.EVO_WALLET_MENU.get(), EvoWalletScreen::new);
-            });
-        }
-    }
-
     @SubscribeEvent
     public void onRegisterCommands(net.minecraftforge.event.RegisterCommandsEvent event) {
-        TempBanCommand.register(event.getDispatcher());
-        AdminCommands.register(event.getDispatcher());
-        FlyCommand.register(event.getDispatcher());
-        GodCommand.register(event.getDispatcher());
-        InvseeCommand.register(event.getDispatcher());
-        RTPCommand.register(event.getDispatcher());
-        BroadcastCommand.register(event.getDispatcher());
-        ChatCommands.register(event.getDispatcher());
-
-        StaffGmCommand.register(event.getDispatcher());
-        StaffTpCommand.register(event.getDispatcher());
-        WarnCommands.register(event.getDispatcher());
-        EventLogCommands.register(event.getDispatcher());
-        org.evocraft.evocore.vote.VoteCommands.register(event.getDispatcher());
-        EvoBankCommands.register(event.getDispatcher());
-        EvoWalletCommands.register(event.getDispatcher());
-
-        // Comanda pentru NPC-uri Top
-        TopNPCCommand.register(event.getDispatcher());
+        org.evocraft.evocore.database.MigrateDatabaseCommand.register(event.getDispatcher());
     }
 
     @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event) {
-        EvoVotifier.start();
         TranslationManager.initialize();
         DatabaseManager.initialize();
-        ChatManager.initializeDB();
-        WarnManager.initializeDB();
         EventLogManager.initialize();
         EconomyManager.initialize();
-        WarpManager.get();
         PlayerStatsManager.initialize();
-        KitManager.get();
         CrateKeyManager.get();
-        EvoBankManager.initialize();
-        EvoWalletManager.initialize();
-        HomeManager.initialize();
     }
 
     @SubscribeEvent
     public void onServerStopping(ServerStoppingEvent event) {
         PlayerStatsManager.get().save();
-        EvoVotifier.stop();
-        KitManager.get().save();
-        EvoBankManager.get().save();
-        EvoWalletManager.get().save();
-        WarpManager.get().save();
         EventLogManager.shutdown();
     }
 
     @SubscribeEvent
     public void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
-
             UUID uuid = player.getUUID();
             String playerName = player.getName().getString();
 
@@ -220,21 +67,9 @@ public class EvoCore {
                             PlayerStatsManager.PlayerStats stats = PlayerStatsManager.get().getStats(uuid);
                             String realRank = PlayerStatsManager.get().getLuckPermsRank(uuid);
                             PacketHandler.sendToPlayer(new PacketHandler.S2C_SyncStats(stats.kills, stats.deaths, stats.playtimeSeconds, realRank), player);
-                        }
-
-                        if (org.evocraft.evocore.data.PlayerStatsManager.get() != null) {
                             org.evocraft.evocore.data.PlayerStatsManager.get().syncClient(player.getUUID());
                         }
-
-                        if (HomeManager.get() != null) {
-                            HomeManager.get().syncHomes(player);
-                        }
-
-                        if (EvoBankManager.get() != null) {
-                            EvoBankManager.get().repairPlayerCardsAfterUpdate(player);
-                        }
                     } catch (Exception e) {
-                        System.err.println("[EvoCore] LOGIN ERROR CAUGHT (Homes/Economy/Stats): Server was protected from a crash!");
                         e.printStackTrace();
                     }
                 }));

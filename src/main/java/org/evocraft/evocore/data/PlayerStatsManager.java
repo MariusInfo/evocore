@@ -66,7 +66,7 @@ public class PlayerStatsManager {
                 if (bestPrefix == null) bestPrefix = user.getCachedData().getMetaData().getPrefix();
                 if (bestPrefix != null && !bestPrefix.isEmpty()) return bestPrefix.replace('&', '§').replaceAll("(?i)§[k-o]", "").trim();
             }
-        } catch (Exception e) {}
+        } catch (Throwable e) {}
         return "§7Member";
     }
 
@@ -112,7 +112,7 @@ public class PlayerStatsManager {
                     }
                     System.out.println("[EvoCore] Loaded statistics and economy data (including Fly) from the database.");
                 }
-            } catch (Exception e) { e.printStackTrace(); }
+            } catch (Throwable e) { e.printStackTrace(); }
         }
     }
 
@@ -180,7 +180,7 @@ public class PlayerStatsManager {
                             stmt.executeUpdate();
                             saved = true; // S-a salvat perfect!
                         }
-                    } catch (Exception e) {
+                    } catch (Throwable e) {
                         retries++;
                         System.err.println("[EvoCore] Database timeout! Retrying connection... (" + retries + "/2)");
                         try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
@@ -205,7 +205,7 @@ public class PlayerStatsManager {
                 PacketHandler.sendToPlayer(new PacketHandler.S2C_SyncStats(stats.kills, stats.deaths, stats.playtimeSeconds, currentRank), player);
                 PacketHandler.sendToPlayer(new PacketHandler.S2C_SyncBalance(stats.balance), player);
             }
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (Throwable e) { e.printStackTrace(); }
     }
 
     public void updateName(UUID uuid, String name) { getStats(uuid).name = name; saveToDatabase(uuid); }

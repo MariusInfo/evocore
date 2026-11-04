@@ -64,14 +64,12 @@ public class DatabaseManager {
         }
     }
 
-    // SYNCHRONIZED previne eroarea de "Connection is closed"
     public synchronized void connect() {
         try {
             if (connection != null && !connection.isClosed()) return;
 
             if (type.equals("MYSQL")) {
                 System.out.println("[EvoCore] Attempting MariaDB/MySQL connection via " + host + "...");
-                // KeepAlive forțează menținerea conexiunii active
                 String url = "jdbc:mariadb://" + host + ":" + port + "/" + database + "?autoReconnect=true&allowPublicKeyRetrieval=true&tcpKeepAlive=true";
                 Class.forName("org.evocraft.evocore.repackaged.mariadb.Driver");
                 connection = java.sql.DriverManager.getConnection(url, username, password);
@@ -88,7 +86,6 @@ public class DatabaseManager {
         }
     }
 
-    // SYNCHRONIZED previne crash-urile la trafic mare
     public synchronized Connection getConnection() {
         try {
             if (connection == null || connection.isClosed()) connect();
@@ -97,8 +94,14 @@ public class DatabaseManager {
     }
 
     private void createTables() {
+        boolean isSqlite = type.equals("SQLITE");
+        
+        // SQLite nu suport AUTO_INCREMENT, ci AUTOINCREMENT pentru INTEGER PRIMARY KEY.
+        String idStats = isSqlite ? "id INTEGER UNIQUE" : "id INT AUTO_INCREMENT UNIQUE";
+        String idKeys = isSqlite ? "id INTEGER UNIQUE" : "id INT AUTO_INCREMENT UNIQUE";
+        
         String statsQuery = "CREATE TABLE IF NOT EXISTS player_stats (" +
-                "id INT AUTO_INCREMENT UNIQUE, " +
+                idStats + ", " +
                 "uuid VARCHAR(36) PRIMARY KEY, " +
                 "name VARCHAR(32), " +
                 "balance DOUBLE DEFAULT 0, " +
@@ -133,31 +136,27 @@ public class DatabaseManager {
                 "PRIMARY KEY (uuid, home_name)" +
                 ");";
 
-        // TABELUL 1 PROTECȚII: Aici se salvează chunk-urile fizice
         String claimsQuery = "CREATE TABLE IF NOT EXISTS player_claims (" +
                 "chunk_key VARCHAR(100) NOT NULL PRIMARY KEY, " +
                 "owner_uuid VARCHAR(36) NOT NULL, " +
-                "custom_name VARCHAR(100)" + // Adăugat custom_name
+                "custom_name VARCHAR(100)" + 
                 ");";
 
-        // TABELUL 2 PROTECȚII: Aici se salvează SLOTURILE CUMPĂRATE și PRIETENII (Trust)
         String claimSettingsQuery = "CREATE TABLE IF NOT EXISTS claim_player_settings (" +
                 "uuid VARCHAR(36) PRIMARY KEY, " +
                 "player_name VARCHAR(32), " +
-                "bought_slots INT DEFAULT 1, " + // Aici ține minte câte are disponibile
+                "bought_slots INT DEFAULT 1, " + 
                 "trusted_data TEXT" +
                 ");";
 
-        // TABELUL 3 PROTECȚII: Aici ținem evenimentele globale (reducerile de la admini)
         String claimEventsQuery = "CREATE TABLE IF NOT EXISTS claim_global_events (" +
                 "id INT PRIMARY KEY, " +
                 "stock INT DEFAULT 0, " +
                 "price DOUBLE DEFAULT 0" +
                 ");";
 
-        // ADAUGAT: TABELUL 4 CHEI VOTE (Sistem Crate)
         String keysQuery = "CREATE TABLE IF NOT EXISTS player_keys (" +
-                "id INT AUTO_INCREMENT UNIQUE, " +
+                idKeys + ", " +
                 "username VARCHAR(32), " +
                 "crate_name VARCHAR(50), " +
                 "amount INT DEFAULT 0, " +
@@ -171,12 +170,11 @@ public class DatabaseManager {
             stmt.execute(claimsQuery);
             stmt.execute(claimSettingsQuery);
             stmt.execute(claimEventsQuery);
-            stmt.execute(keysQuery); // Executăm query-ul nou adăugat
+            stmt.execute(keysQuery);
 
-            // Această linie repară problema cu Unknown column 'custom_name' pe serverele vechi
             try { stmt.execute("ALTER TABLE player_claims ADD COLUMN IF NOT EXISTS custom_name VARCHAR(100);"); } catch (SQLException ignore) {}
 
-            System.out.println("[EvoCore] All tables were checked/created successfully in MariaDB.");
+            System.out.println("[EvoCore] All tables were checked/created successfully in " + type + ".");
         } catch (SQLException e) {
             e.printStackTrace();
         }

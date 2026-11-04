@@ -2,6 +2,14 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/evocombat/evocore.evocombat.main.iml" filepath="$PROJECT_DIR$/.idea/modules/evocombat/evocore.evocombat.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/evocombat/evocore.evocombat.test.iml" filepath="$PROJECT_DIR$/.idea/modules/evocombat/evocore.evocombat.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/evoessentials/evocore.evoessentials.main.iml" filepath="$PROJECT_DIR$/.idea/modules/evoessentials/evocore.evoessentials.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/evoessentials/evocore.evoessentials.test.iml" filepath="$PROJECT_DIR$/.idea/modules/evoessentials/evocore.evoessentials.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/evonpc/evocore.evonpc.main.iml" filepath="$PROJECT_DIR$/.idea/modules/evonpc/evocore.evonpc.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/evonpc/evocore.evonpc.test.iml" filepath="$PROJECT_DIR$/.idea/modules/evonpc/evocore.evonpc.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/evovote/evocore.evovote.main.iml" filepath="$PROJECT_DIR$/.idea/modules/evovote/evocore.evovote.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/evovote/evocore.evovote.test.iml" filepath="$PROJECT_DIR$/.idea/modules/evovote/evocore.evovote.test.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/evocore.main.iml" filepath="$PROJECT_DIR$/.idea/modules/evocore.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/evocore.test.iml" filepath="$PROJECT_DIR$/.idea/modules/evocore.test.iml" />
     </modules>

@@ -8,6 +8,10 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/evocombat" />
+            <option value="$PROJECT_DIR$/evoessentials" />
+            <option value="$PROJECT_DIR$/evonpc" />
+            <option value="$PROJECT_DIR$/evovote" />
           </set>
         </option>
         <option name="resolveExternalAnnotations" value="true" />
