@@ -22,10 +22,15 @@ public class ClientPacketHandler {
         }
     }
     public static void handleVanishHUD(boolean v) {
+        try {
+            Class<?> overlay = Class.forName("org.evocraft.evoessentials.vanish.VanishOverlay");
+            overlay.getField("isVanished").setBoolean(null, v);
+        } catch (ReflectiveOperationException | LinkageError ignored) {
+        }
     }
 
     public static void handleSyncVanish(List<UUID> vanishedList) {
-        ClientVanishData.vanishedPlayers = vanishedList;
+        ClientVanishData.vanishedPlayers = vanishedList == null ? new java.util.ArrayList<>() : new java.util.ArrayList<>(vanishedList);
     }
 
     public static void handleSyncFlyTime(boolean isFlying, int timeRemaining) {

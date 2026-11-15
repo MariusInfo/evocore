@@ -235,6 +235,9 @@ public class EventLogManager {
         synchronized (DatabaseManager.get()) {
             try {
                 Connection connection = DatabaseManager.get().getConnection();
+                if (connection == null) {
+                    return;
+                }
                 try (PreparedStatement stmt = connection.prepareStatement(
                         "INSERT INTO " + TABLE_NAME
                                 + " (created_at, window_start, window_end, uuid, player_name, action, target, dimension, x, y, z, chunk_x, chunk_z, count, detail)"
@@ -276,6 +279,9 @@ public class EventLogManager {
         synchronized (DatabaseManager.get()) {
             try {
                 Connection connection = DatabaseManager.get().getConnection();
+                if (connection == null) {
+                    return;
+                }
                 try (PreparedStatement stmt = connection.prepareStatement(
                         "DELETE FROM " + TABLE_NAME + " WHERE window_end < ?")) {
                     stmt.setLong(1, cutoff);
@@ -296,6 +302,9 @@ public class EventLogManager {
         synchronized (DatabaseManager.get()) {
             try {
                 Connection connection = DatabaseManager.get().getConnection();
+                if (connection == null) {
+                    return entries;
+                }
                 try (PreparedStatement stmt = connection.prepareStatement(sql)) {
                     if (playerName == null) {
                         stmt.setInt(1, limit);
@@ -359,6 +368,9 @@ public class EventLogManager {
         synchronized (DatabaseManager.get()) {
             try {
                 Connection connection = DatabaseManager.get().getConnection();
+                if (connection == null) {
+                    return;
+                }
                 try (Statement stmt = connection.createStatement()) {
                     stmt.execute(createTable);
                     tryExecute(stmt, "CREATE INDEX idx_event_logs_window_end ON " + TABLE_NAME + " (window_end)");

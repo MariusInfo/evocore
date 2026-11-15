@@ -22,6 +22,10 @@ configurations {
         canBeResolved = true
         canBeConsumed = false
     }
+    sqliteBundle {
+        canBeResolved = true
+        canBeConsumed = false
+    }
     implementation.extendsFrom shadow
 }
 
@@ -36,14 +40,7 @@ minecraft {
             property 'forge.logging.console.level', 'debug'
             mods {
                 "${mod_id}" { source sourceSets.main }
-                "evoessentials" { source project(':evoessentials').sourceSets.main }
-                "evocombat" { source project(':evocombat').sourceSets.main }
-                "evovote" { source project(':evovote').sourceSets.main }
-                "evonpc" { source project(':evonpc').sourceSets.main }
-                "evochat" { source project(':evochat').sourceSets.main }
-                "evokits" { source project(':evokits').sourceSets.main }
             }
-        
         }
         client {}
         server {
@@ -60,12 +57,6 @@ repositories {
 }
 
 dependencies {
-    runtimeOnly project(':evoessentials')
-    runtimeOnly project(':evocombat')
-    runtimeOnly project(':evovote')
-    runtimeOnly project(':evonpc')
-    runtimeOnly project(':evochat')
-    runtimeOnly project(':evokits')
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
     compileOnly 'net.luckperms:api:5.4'
 
@@ -73,6 +64,16 @@ dependencies {
     shadow('org.mariadb.jdbc:mariadb-java-client:3.1.4') {
         transitive = false
     }
+    sqliteBundle('org.xerial:sqlite-jdbc:3.45.3.0') {
+        transitive = false
+    }
+}
+
+def embeddedLibsDir = layout.buildDirectory.dir("embeddedLibs")
+def prepareEmbeddedSqlite = tasks.register('prepareEmbeddedSqlite', Sync) {
+    from(configurations.sqliteBundle)
+    into(embeddedLibsDir.map { it.dir("META-INF/evocore-libs") })
+    rename { 'sqlite-jdbc.jar.bin' }
 }
 
 tasks.named('processResources', ProcessResources).configure {
@@ -109,12 +110,15 @@ tasks.withType(JavaCompile).configureEach {
 shadowJar {
     archiveClassifier.set('shadow')
     configurations = [project.configurations.shadow]
+    dependsOn prepareEmbeddedSqlite
+    from(embeddedLibsDir)
 
     relocate 'org.mariadb.jdbc', 'org.evocraft.evocore.repackaged.mariadb'
 
     exclude 'module-info.class'
     exclude 'META-INF/versions/**/module-info.class'
     exclude 'META-INF/services/java.sql.Driver'
+    finalizedBy 'reobfShadowJar'
 }
 
 reobf {
@@ -122,3 +126,4 @@ reobf {
 }
 
 tasks.build.dependsOn shadowJar
+tasks.build.dependsOn reobfShadowJar

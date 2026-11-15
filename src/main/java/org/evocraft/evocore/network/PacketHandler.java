@@ -74,8 +74,10 @@ public class PacketHandler {
                 if (p != null) {
                     PlayerStatsManager.PlayerStats stats = PlayerStatsManager.get().getStats(p.getUUID());
                     if (stats != null) {
-                        stats.allowTPA = tpa;
-                        stats.allowTrade = trade;
+                        synchronized (stats) {
+                            stats.allowTPA = tpa;
+                            stats.allowTrade = trade;
+                        }
                         PlayerStatsManager.get().saveToDatabase(p.getUUID());
                     }
                 }
@@ -87,22 +89,34 @@ public class PacketHandler {
     public static class C2S_BlockPlayer {
         public final String targetName; public final boolean block;
         public C2S_BlockPlayer(String t, boolean b) { this.targetName = t; this.block = b; }
-        public C2S_BlockPlayer(FriendlyByteBuf b) { this.targetName = b.readUtf(); this.block = b.readBoolean(); }
-        public void toBytes(FriendlyByteBuf b) { b.writeUtf(targetName); b.writeBoolean(block); }
+        public C2S_BlockPlayer(FriendlyByteBuf b) { this.targetName = b.readUtf(32); this.block = b.readBoolean(); }
+        public void toBytes(FriendlyByteBuf b) { b.writeUtf(targetName == null ? "" : targetName, 32); b.writeBoolean(block); }
         public void handle(Supplier<NetworkEvent.Context> c) {
             c.get().enqueueWork(() -> {
                 ServerPlayer p = c.get().getSender();
-                if (p != null) {
+                if (p != null && targetName != null && !targetName.isBlank() && targetName.length() <= 32) {
                     PlayerStatsManager.PlayerStats stats = PlayerStatsManager.get().getStats(p.getUUID());
-                    if (stats != null) {
-                        p.getServer().getProfileCache().get(targetName).ifPresentOrElse(profile -> {
+                    if (stats != null && p.getServer() != null) {
+                        String cleanTarget = targetName.trim();
+                        p.getServer().getProfileCache().get(cleanTarget).ifPresentOrElse(profile -> {
                             UUID targetId = profile.getId();
-                            if (block && !stats.blockedPlayers.contains(targetId.toString())) {
-                                stats.blockedPlayers.add(targetId.toString());
-                                p.sendSystemMessage(Component.literal("§aBlocked " + targetName + " from TPA/Trade!"));
-                            } else if (!block) {
-                                stats.blockedPlayers.remove(targetId.toString());
-                                p.sendSystemMessage(Component.literal("§aUnblocked " + targetName + "!"));
+                            if (targetId.equals(p.getUUID())) {
+                                p.sendSystemMessage(Component.literal("§cYou cannot block yourself!"));
+                                return;
+                            }
+                            synchronized (stats) {
+                                if (block) {
+                                    if (stats.blockedPlayers.contains(targetId.toString())) return;
+                                    if (stats.blockedPlayers.size() >= 100) {
+                                        p.sendSystemMessage(Component.literal("§cYour block list is full (max 100 players)."));
+                                        return;
+                                    }
+                                    stats.blockedPlayers.add(targetId.toString());
+                                    p.sendSystemMessage(Component.literal("§aBlocked " + cleanTarget + " from TPA/Trade!"));
+                                } else {
+                                    stats.blockedPlayers.remove(targetId.toString());
+                                    p.sendSystemMessage(Component.literal("§aUnblocked " + cleanTarget + "!"));
+                                }
                             }
                             PlayerStatsManager.get().saveToDatabase(p.getUUID());
                         }, () -> {
@@ -145,12 +159,12 @@ public class PacketHandler {
         }
 
         public void handle(Supplier<NetworkEvent.Context> ctx) {
-            ctx.get().enqueueWork(() -> {
+            ctx.get().enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
                 org.evocraft.evocore.client.ClientStatsData.kills = this.kills;
                 org.evocraft.evocore.client.ClientStatsData.deaths = this.deaths;
-                org.evocraft.evocore.client.ClientStatsData.playtimeSeconds = (int)this.playtimeSec;
+                org.evocraft.evocore.client.ClientStatsData.playtimeSeconds = (int) Math.min(Integer.MAX_VALUE, Math.max(0L, this.playtimeSec));
                 org.evocraft.evocore.client.ClientStatsData.rank = this.rank;
-            });
+            }));
             ctx.get().setPacketHandled(true);
         }
     }

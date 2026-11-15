@@ -6,11 +6,12 @@ import com.google.gson.reflect.TypeToken;
 import net.minecraftforge.fml.loading.FMLPaths;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
 public class TranslationManager {
-    private static TranslationManager INSTANCE;
+    private static volatile TranslationManager INSTANCE;
     private final Map<String, String> messages = new HashMap<>();
     private final File saveFile;
     private final Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -21,16 +22,29 @@ public class TranslationManager {
         load();
     }
 
-    public static void initialize() {
+    public static synchronized void initialize() {
         if (INSTANCE == null) INSTANCE = new TranslationManager();
     }
 
+    public static synchronized void reload() {
+        INSTANCE = new TranslationManager();
+    }
+
+    private static TranslationManager getInstance() {
+        TranslationManager current = INSTANCE;
+        if (current == null) {
+            initialize();
+            current = INSTANCE;
+        }
+        return current;
+    }
+
     public static String get(String key) {
-        return INSTANCE.messages.getOrDefault(key, key);
+        return getInstance().messages.getOrDefault(key, key);
     }
 
     public static String get(String key, Object... args) {
-        String msg = INSTANCE.messages.getOrDefault(key, key);
+        String msg = getInstance().messages.getOrDefault(key, key);
         try {
             return String.format(msg, args);
         } catch (Exception e) {
@@ -43,7 +57,7 @@ public class TranslationManager {
             generateDefaults();
             return;
         }
-        try (Reader reader = new FileReader(saveFile)) {
+        try (Reader reader = new InputStreamReader(new FileInputStream(saveFile), StandardCharsets.UTF_8)) {
             Map<String, String> loaded = gson.fromJson(reader, new TypeToken<Map<String, String>>(){}.getType());
             if (loaded != null) messages.putAll(loaded);
             boolean changed = false;
@@ -93,7 +107,7 @@ public class TranslationManager {
     }
 
     private void save() {
-        try (Writer writer = new FileWriter(saveFile)) {
+        try (Writer writer = new OutputStreamWriter(new FileOutputStream(saveFile), StandardCharsets.UTF_8)) {
             gson.toJson(messages, writer);
         } catch (IOException e) { e.printStackTrace(); }
     }
