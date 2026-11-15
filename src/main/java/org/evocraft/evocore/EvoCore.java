@@ -4,6 +4,7 @@ import net.minecraft.server.level.ServerPlayer;
 import java.util.UUID;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.server.ServerStartingEvent;
+import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.event.server.ServerStoppingEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -46,8 +47,13 @@ public class EvoCore {
 
     @SubscribeEvent
     public void onServerStopping(ServerStoppingEvent event) {
-        PlayerStatsManager.get().save();
+        PlayerStatsManager.shutdown();
         EventLogManager.shutdown();
+    }
+
+    @SubscribeEvent
+    public void onServerStopped(ServerStoppedEvent event) {
+        DatabaseManager.get().disconnect();
     }
 
     @SubscribeEvent
@@ -56,19 +62,12 @@ public class EvoCore {
             UUID uuid = player.getUUID();
             String playerName = player.getName().getString();
 
-            if (PlayerStatsManager.get() != null) {
-                PlayerStatsManager.get().updateName(uuid, playerName);
-            }
+            PlayerStatsManager.get().updateName(uuid, playerName);
 
             if (player.getServer() != null) {
                 player.getServer().tell(new net.minecraft.server.TickTask(player.getServer().getTickCount() + 10, () -> {
                     try {
-                        if (PlayerStatsManager.get() != null) {
-                            PlayerStatsManager.PlayerStats stats = PlayerStatsManager.get().getStats(uuid);
-                            String realRank = PlayerStatsManager.get().getLuckPermsRank(uuid);
-                            PacketHandler.sendToPlayer(new PacketHandler.S2C_SyncStats(stats.kills, stats.deaths, stats.playtimeSeconds, realRank), player);
-                            org.evocraft.evocore.data.PlayerStatsManager.get().syncClient(player.getUUID());
-                        }
+                        PlayerStatsManager.get().syncClient(player.getUUID());
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
